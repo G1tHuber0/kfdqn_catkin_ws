@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import math
+import os
 import numpy as np
 import gymnasium as gym
 from gymnasium import spaces
 from gymnasium.envs.registration import register, registry
 from typing import Optional, Tuple
 import time
+import rospkg
 import rospy
 from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import Odometry
@@ -80,6 +82,7 @@ class ROSGazeboMobileRobotEnv(gym.Env):
         max_goal_distance: float = 8.0,
         wait_timeout: float = 1.0,
         obstacle_mode: bool = False,
+        obstacle_models_root: str | None = None,
         enable_viz: bool = True,
         viz_frame: str = "odom",
         max_path_len: int = 3000,
@@ -123,6 +126,13 @@ class ROSGazeboMobileRobotEnv(gym.Env):
         self.max_goal_distance = max_goal_distance
         self.wait_timeout = wait_timeout
         self.obstacle_mode = obstacle_mode
+        if obstacle_models_root is None:
+            obstacle_models_root = os.path.join(
+                rospkg.RosPack().get_path("kfdqn_gazebo"),
+                "models",
+                "kfdqn_obstacles",
+            )
+        self.obstacle_models_root = obstacle_models_root
         self.enable_viz = enable_viz
         self.viz_frame = viz_frame
         self.max_path_len = max_path_len
@@ -171,12 +181,26 @@ class ROSGazeboMobileRobotEnv(gym.Env):
         self.step_count = 0
         self.goal = np.array([self.goal_x, self.goal_y], dtype=np.float32)
         self.path_msg: Optional[Path] = None
+        self._sdf_cache: dict[str, str] = {}
 
     def _scan_cb(self, msg: LaserScan):
         self._current_scan = msg
 
     def _odom_cb(self, msg: Odometry):
         self._current_odom = msg
+
+    def _load_sdf_from_model_dir(self, model_dir_name: str) -> str:
+        cached = self._sdf_cache.get(model_dir_name)
+        if cached is not None:
+            return cached
+        sdf_path = os.path.join(self.obstacle_models_root, model_dir_name, "model.sdf")
+        try:
+            with open(sdf_path, "r", encoding="utf-8") as sdf_file:
+                sdf_content = sdf_file.read()
+        except OSError as exc:
+            raise RuntimeError(f"Failed to read SDF from {sdf_path}: {exc}") from exc
+        self._sdf_cache[model_dir_name] = sdf_content
+        return sdf_content
 
     def _get_pose(self, odom: Odometry) -> Tuple[float, float, float]:
         pos = odom.pose.pose.position
