@@ -1,0 +1,145 @@
+import torch
+import os
+
+class Config:
+    def __init__(self, algo='DQN', env_name='GoalReachTrain-v0'):
+        """
+        :param algo: 'DQN', 'Double', 'Dueling', 'Reinforce', 'AC', 'KFDQN'
+        """
+        # --- 1. 环境与基础设置 ---
+        self.algo = algo
+        self.env_name = env_name
+
+        self.state_dim = 93
+        self.action_dim = 3
+        self.hidden_dim = [128, 256, 128, 64]
+        if self.algo == "dueling":
+            self.hidden_dim = [128, 256, 128]
+
+        default_seed = 123
+
+
+        try:
+            self.seed = int(os.environ.get("TRAIN_SEED", str(default_seed)))
+        except Exception:
+            self.seed = default_seed
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        # --- 3. 训练通用参数 ---
+        self.gamma = 0.98       
+        self.episodes = 500     
+        self.lr = 0.002   
+        self.delta = None
+        # 探索参数
+        self.epsilon_start = 1
+        self.epsilon_end = 0.01
+        self.decay_start =0
+        self.decay_steps = 50      
+        # 梯度剪裁（<=0 或 None 不启用）
+        self.grad_clip_norm = None
+        # --- 4. 初始化特定算法参数 ---
+        # 先给 KFDQN 特有参数赋默认值 None，防止报错
+        self.h1 = None
+        self.h2 = None
+        self.m_base = None
+        # 加载具体参数
+        self._set_algo_specific_params()
+        self._apply_ros_env_overrides()
+
+    def _set_algo_specific_params(self):
+        """根据不同算法调整参数"""
+        
+        # Group A: DQN 
+        if self.algo in ['DQN', 'Double', 'Dueling']:
+            self.buffer_size = 10000 
+            self.minimal_size = 500  
+            self.batch_size = 64     
+            self.target_update = 10
+            self.train_freq = 1
+            self.gradient_steps = 1 
+        # Group B: Reinforce
+        elif self.algo == 'Reinforce':
+            self.buffer_size = None
+            self.minimal_size = None
+            self.batch_size = None
+            self.target_update = None
+            self.epsilon_start = None
+        # Group C: Actor-Critic
+        elif self.algo == 'AC':
+            self.buffer_size = None 
+            self.minimal_size = 0
+            self.batch_size = 1
+            self.target_update = None
+            self.epsilon_start = None
+            self.lr_actor = 0.00001
+            self.lr_critic = 0.0001
+        # Group D: KFDQN (Knowledge Guided)
+        elif self.algo == 'KFDQN':
+
+            self.use_hybrid_action = True
+            self.use_hybrid_learning = True
+
+            self.buffer_size = 10000
+            self.minimal_size = 500
+            self.batch_size = 64
+            self.target_update = 10
+            self.train_freq =1
+
+            # 探索参数
+            self.epsilon_start = 0.01
+            self.epsilon_end = 0.01
+            self.decay_start =0
+            self.decay_steps = 0 
+
+            # KFDQN 关键超参（按论文）
+            self.h1 = 0.1
+            self.h2 = 0.08
+            # 监督阶段长度（论文描述常用 50 episodes）
+            self.ep_r = 50
+            # Algorithm 2: 每隔 C 回合同步一次 targetQ 和 kf_theta
+            self.C_update = 50
+            # Eq.(34): m = 0.35 + 0.6 * exp(-i)
+            self.m_base = 0.35
+            self.m_decay = 0.6
+            self.m_tau = 100  # 严格复现：不使用 /m_tau
+            # =========================
+            # Fuzzy 学习率与动作强度
+            # =========================
+            self.freeze_fuzzy_premise = True
+            self.fuzzy_lr = 0.02
+            if "MountainCar" in self.env_name:
+                self.h1 = 0.4
+                self.h2 = 0.6
+                self.ep_r = 50
+                self.m_base = 0.8
+                self.m_decay = 0.2
+
+    def _apply_ros_env_overrides(self):
+        if "GoalReach" in self.env_name or "ObstacleAvoidROS" in self.env_name:
+            # ROS 环境说明：两个实验出生点固定 (0,0)。
+            # GoalReachROS 使用空白地图 empty.world；ObstacleAvoidROS 为两长方体 L 形障碍。
+            self.state_dim = 93
+            self.action_dim = 3
+            self.hidden_dim = [128, 256, 128, 64]
+            self.gamma = 0.99
+            self.lr = 1e-4
+            self.delta = 0.01
+            self.buffer_size = 10000
+            self.minimal_size = 1500
+            self.batch_size = 256
+            self.target_update = 500
+            self.train_freq = 1
+            self.gradient_steps = 1 
+            # --- 探索参数 (按 Step 衰减) ---
+            self.epsilon_start = 1.0
+            self.epsilon_end = 0.01
+            
+            # [修改] 预热步数：前 2000 步纯随机探索 (约10个回合)
+            self.decay_start = 0  
+            
+            # [修改] 衰减步数：在接下来的 50,000 步内衰减到 0.01
+            # 假设总步数约为 500回 * 200步 = 100,000步，这里衰减到训练的一半
+            self.decay_steps = 4000
+            if "GoalReach" in self.env_name:
+                self.episodes = 500
+            elif "ObstacleAvoidROS" in self.env_name:
+                self.episodes = 1000

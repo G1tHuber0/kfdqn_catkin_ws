@@ -1,0 +1,42 @@
+<?xml version="1.0" ?>
+<sdf version="1.6">
+  <world name="obstacle_avoid">
+    <include><uri>model://sun</uri></include>
+    <include><uri>model://ground_plane</uri></include>
+    <include><uri>model://turtlebot3_square</uri></include>
+
+    <model name="box_a">
+      <static>true</static>
+      <pose>0.55 0.55 0.25 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <box><size>0.1 0.3 0.5</size></box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box><size>0.1 0.3 0.5</size></box>
+          </geometry>
+        </visual>
+      </link>
+    </model>
+
+    <model name="box_b">
+      <static>true</static>
+      <pose>0.75 0.45 0.25 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <box><size>0.3 0.1 0.5</size></box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box><size>0.3 0.1 0.5</size></box>
+          </geometry>
+        </visual>
+      </link>
+    </model>
+  </world>
+</sdf>

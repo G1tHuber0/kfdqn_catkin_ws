@@ -1,0 +1,2 @@
+kfdqn_gazebo
+-DPYTHON_EXECUTABLE=/home/lst/miniconda3/envs/ros_rl/bin/python -DCATKIN_DEVEL_PREFIX=/home/lst/kfdqn_catkin_ws/devel -DCMAKE_INSTALL_PREFIX=/home/lst/kfdqn_catkin_ws/install -G Unix Makefiles

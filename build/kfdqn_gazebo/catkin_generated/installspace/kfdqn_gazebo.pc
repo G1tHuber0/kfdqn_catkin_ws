@@ -1,0 +1,8 @@
+prefix=/home/lst/kfdqn_catkin_ws/install
+
+Name: kfdqn_gazebo
+Description: Description of kfdqn_gazebo
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 

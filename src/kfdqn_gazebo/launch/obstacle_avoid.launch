@@ -1,0 +1,27 @@
+<launch>
+  <arg name="model" default="$(env TURTLEBOT3_MODEL)"/>
+
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="$(find kfdqn_gazebo)/worlds/obstacle_avoid.world"/>
+    <arg name="use_sim_time" value="true"/>
+  </include>
+
+  <param name="robot_description"
+         command="$(find xacro)/xacro --inorder $(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro"/>
+
+  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen"/>
+
+  <node pkg="gazebo_ros" type="spawn_model" name="spawn_urdf" output="screen"
+        args="-urdf -model turtlebot3_$(arg model) -x 0 -y 0 -z 0 -Y 0 -param robot_description"/>
+
+  <!-- RViz -->
+  <arg name="use_rviz" default="true"/>
+  <arg name="rviz_config" default="$(find kfdqn_gazebo)/rviz/kfdqn_nav.rviz"/>
+
+  <group if="$(arg use_rviz)">
+    <node pkg="rviz" type="rviz" name="rviz"
+          args="-d $(arg rviz_config)"
+          output="screen"
+          required="false"/>
+  </group>
+</launch>
