@@ -114,7 +114,7 @@ class Config:
                 self.m_decay = 0.2
 
     def _apply_ros_env_overrides(self):
-        if "GoalReach" in self.env_name or "ObstacleAvoidROS" in self.env_name:
+        if "GoalReach" in self.env_name or "ObstacleAvoid" in self.env_name:
             # ROS 环境说明：两个实验出生点固定 (0,0)。
             # GoalReachROS 使用空白地图 empty.world；ObstacleAvoidROS 为两长方体 L 形障碍。
             self.state_dim = 93

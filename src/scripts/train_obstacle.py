@@ -15,7 +15,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 import envs_ros.ros_gazebo_mobile_robot_env  # 注册训练环境
 from config import Config
-# 注意：这里需要导入 KFDQNAgent
+# 导入两种 Agent，方便切换
 from agents.kfdqn_agent import KFDQNAgent 
 from agents.dqn_agent import DQNAgent
 from utils.replay_buffer import ReplayBuffer 
@@ -23,18 +23,22 @@ from utils.replay_buffer import ReplayBuffer
 # ==========================================
 # 1. 全局配置与参数
 # ==========================================
-ALGO_NAME = "DQN" # 修改算法名称
-ENV_NAME = "GoalReachTrain-v0" 
+# [修改] 算法名称: 可选 "KFDQN" 或 "DQN"
+ALGO_NAME = "KFDQN" 
+
+# [修改] 环境 ID: 使用避障训练环境
+ENV_NAME = "ObstacleAvoidTrain-v0" 
+
 RENDER_MODE = None             
-MAX_STEPS = 100               # 防止死循环
+MAX_STEPS = 150               # [修改] 避障任务可能需要更多步数绕路，稍微调大一点防止过早截断
 
 # 自定义模型保存节点 (总步数)
-CHECKPOINT_STEPS = [1000, 2000, 4000, 6000, 8000, 10000, 15000,20000,25000,30000,40000,50000]
+CHECKPOINT_STEPS = [2000, 5000, 10000, 20000, 30000, 50000, 75000, 100000, 150000]
 
 # 获取时间戳
 TIMESTAMP = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
-# 目录定义
+# 目录定义 (加上 Obstacle 后缀区分)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(BASE_DIR, "outputs", f"{ALGO_NAME}_{ENV_NAME}_{TIMESTAMP}")
 LOG_DIR = os.path.join(OUTPUT_DIR, "logs")
@@ -50,18 +54,28 @@ os.makedirs(DATA_DIR, exist_ok=True)
 # 2. 初始化环境与智能体
 # ==========================================
 def main():
+    # 1. 加载配置 (Config 会根据 ENV_NAME 自动适配参数，如 obs_dim, episodes 等)
     cfg = Config(algo=ALGO_NAME, env_name=ENV_NAME) 
     cfg.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
-    env = gym.make(ENV_NAME, render_mode=RENDER_MODE,max_steps=MAX_STEPS)
+    # [建议] 对于避障任务，可以在这里手动增加一些回合数
+    # cfg.episodes = 1000 
     
+    # 2. 创建环境
+    env = gym.make(ENV_NAME, render_mode=RENDER_MODE, max_steps=MAX_STEPS)
+    
+    # 3. 设置随机种子
     np.random.seed(cfg.seed+1)
     torch.manual_seed(cfg.seed+1)
     
-    # 初始化 KFDQN Agent
-    agent = DQNAgent(cfg)
-    if hasattr(agent, 'train_mode'):
-        agent.train_mode()
+    # 4. 初始化智能体 (根据 ALGO_NAME 选择)
+    if ALGO_NAME == "KFDQN":
+        agent = KFDQNAgent(cfg)
+    else:
+        agent = DQNAgent(cfg)
+
+
+    agent.train_mode()
     
     replay_buffer = ReplayBuffer(cfg.buffer_size)
     writer = SummaryWriter(log_dir=LOG_DIR)
@@ -72,7 +86,7 @@ def main():
     csv_writer.writerow(["Episode", "Total_Steps", "Reward", "Ep_Steps", "Epsilon", "Avg_Loss", "Success"])
 
     print(f"{'='*40}")
-    print(f"   Start Training: {ALGO_NAME}")
+    print(f"   Start Training: {ALGO_NAME} (Obstacle Avoidance)")
     print(f"   Environment:    {ENV_NAME}")
     print(f"   Output Dir:     {OUTPUT_DIR}")
     print(f"{'='*40}\n")
@@ -99,13 +113,18 @@ def main():
         truncated = False
         
         while not (done or truncated):
-            # [修正 1] 获取动作并解包
-            action_result = agent.take_action(state, episode_idx=total_steps) # 传入 total_steps 以支持按步探索
+            # [关键] 获取动作并解包 (兼容 KFDQN 元组返回)
+
+            # [关键] 参数更新 (兼容 KFDQN 和 DQN)
+            if ALGO_NAME == "KFDQN":
+                agent.update_parameters(i_episode,current_steps=total_steps) 
+            else:
+                agent.update_epsilon(total_steps)
+
+            action_result = agent.take_action(state, episode_idx=total_steps)
             
-            # 检查返回的是否是元组 (KFDQN返回元组, DQN返回int)
             if isinstance(action_result, tuple):
-                action = action_result[0]      # 真正的动作 (int)
-                # debug_info = action_result[1] # 如果需要记录策略类型 ('hya', 'a_f' 等)
+                action = action_result[0]      # 解包 action (int)
             else:
                 action = action_result
 
@@ -119,13 +138,6 @@ def main():
             ep_steps += 1
             total_steps += 1
             
-            # [修正 2] 兼容 KFDQN 的 update_parameters 和 DQN 的 update_epsilon
-            if hasattr(agent, 'update_parameters'):
-                # KFDQN 使用 update_parameters 更新 epsilon 和 m, n 权重
-                agent.update_parameters(total_steps) 
-            elif hasattr(agent, 'update_epsilon'):
-                agent.update_epsilon(total_steps)
-            
             # --- 模型训练 ---
             if replay_buffer.size() > cfg.minimal_size:
                 b_s, b_a, b_r, b_ns, b_d = replay_buffer.sample(cfg.batch_size)
@@ -134,10 +146,10 @@ def main():
                     'rewards': b_r, 'dones': b_d
                 }
                 
-                # KFDQN 的 update 可能返回字典 {'q_loss': x, 'fuzzy_loss': y}
-                loss_info = agent.update(transition_dict, episode_idx=total_steps)
+                # update 可能返回 float 或者 dict
+                loss_info = agent.update(transition_dict, episode_idx=i_episode)
                 
-                # 处理 Loss 记录
+                # 统一计算 Loss 用于记录
                 current_loss = 0.0
                 if isinstance(loss_info, dict):
                     current_loss = loss_info.get('q_loss', 0.0) + loss_info.get('fuzzy_loss', 0.0)
@@ -149,7 +161,7 @@ def main():
                 if total_steps % 100 == 0:
                     writer.add_scalar('Step/Loss', current_loss, total_steps)
 
-            # --- 模型保存 (按步数) ---
+            # --- 模型保存 ---
             if total_steps in CHECKPOINT_STEPS:
                 save_name = f"{ALGO_NAME}_{TIMESTAMP}_{total_steps}.pth"
                 save_path = os.path.join(MODEL_DIR, save_name)
@@ -162,21 +174,22 @@ def main():
                 steps_per_sec = total_steps / (elapsed_time + 1e-9)
                 pbar.set_postfix({
                     'T_Steps': total_steps,       
-                    'S/s': f"{steps_per_sec:.1f}" 
+                    'Step/s': f"{steps_per_sec:.1f}" 
                 })
 
         # --- 回合结束统计 ---
         avg_loss = np.mean(ep_losses) if ep_losses else 0.0
         is_success = 1 if info.get('is_success', False) else 0
+        is_collision = 1 if info.get('is_collision', False) else 0 # 避障任务额外记录碰撞
         
         # TensorBoard
         writer.add_scalar('Episode/01-Reward', ep_reward, i_episode)
-        writer.add_scalar('Episode/05Steps', ep_steps, i_episode)
+        writer.add_scalar('Episode/05-Steps', ep_steps, i_episode)
         writer.add_scalar('Episode/02-Epsilon', agent.epsilon, i_episode)
         writer.add_scalar('Episode/04-Avg_Loss', avg_loss, i_episode)
         writer.add_scalar('Episode/03-Success', is_success, i_episode)
+        writer.add_scalar('Episode/07-Collision', is_collision, i_episode) # [新增] 碰撞记录
         
-        # 记录 KFDQN 特有参数 m (混合权重)
         if hasattr(agent, 'm'):
             writer.add_scalar('Episode/06-HybridWeight_m', agent.m, i_episode)
 
@@ -184,7 +197,7 @@ def main():
         csv_writer.writerow([i_episode, total_steps, ep_reward, ep_steps, agent.epsilon, avg_loss, is_success])
         csv_file.flush()
 
-        # 终端详细打印
+        # 终端详细打印 (固定间距对齐)
         if i_episode % 1 == 0:
             log_str = (
                 f"Ep {i_episode:<4} || "                  
@@ -192,7 +205,7 @@ def main():
                 f"Steps: {ep_steps:>4} | "               
                 f"Loss: {avg_loss:>6.3f} | "             
                 f"Eps: {agent.epsilon:.3f} | "           
-                f"Success: {bool(is_success)!s:<5}"         
+                f"Succ: {bool(is_success)!s:<5}"         
             )
             tqdm.write(log_str)
 
@@ -207,5 +220,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-

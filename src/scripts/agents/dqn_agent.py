@@ -36,7 +36,8 @@ class DQNAgent:
         self.q_net.eval()
         # 评估时不使用 epsilon (完全贪婪)
     
-    def take_action(self, state):
+    def take_action(self, state, episode_idx):
+        self.update_epsilon(episode_idx)
         # [修改] 评估模式下强制贪婪，训练模式下使用 Epsilon-Greedy
         if self.is_training and np.random.random() <= self.epsilon:
             return np.random.randint(self.action_dim)
@@ -46,7 +47,7 @@ class DQNAgent:
             with torch.no_grad():
                 return self.q_net(state_tensor).argmax().item()
 
-    def update(self, transition_dict):
+    def update(self, transition_dict,episode_idx):
         # [安全检查] 评估模式下禁止更新
         if not self.is_training:
             return 0.0

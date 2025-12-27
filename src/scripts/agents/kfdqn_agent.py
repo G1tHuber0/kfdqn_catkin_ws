@@ -90,9 +90,10 @@ class KFDQNAgent:
         if self.use_hybrid_learning:
             self.fuzzy_guide.load_state_dict(self.fuzzy_learn.state_dict())# 将"学习好的模糊参数"复制给"指导模糊系统"
 
-    def update_parameters(self, episode_idx: int):
+       
+    def update_parameters(self, episode_idx: int,current_steps):
         self._episode_idx = episode_idx
-        self.epsilon = get_linear_decay_epsilon(episode_idx, self.cfg)
+        self.epsilon = get_linear_decay_epsilon(current_steps, self.cfg)
         # 公式 (34): m = 0.35 + 0.6 * exp(-i),可以在 config 设置 m_tau，计算 exp(-i/m_tau)
         m_tau = getattr(self.cfg, "m_tau", None)
         if m_tau is None:

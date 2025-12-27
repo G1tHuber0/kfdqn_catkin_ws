@@ -34,7 +34,7 @@ class FuzzySystem(nn.Module):
         self.device = device
         self.env_name = env_name
         self.is_goalreach_ros = "GoalReach" in env_name
-        self.is_obstacle_avoid_ros = "ObstacleAvoidROS" in env_name
+        self.is_obstacle_avoid_ros = "ObstacleAvoid" in env_name
 
         
         if self.is_goalreach_ros:     # Goal Reach ROS 环境
@@ -55,7 +55,6 @@ class FuzzySystem(nn.Module):
 
         # 2. 定义缩放系数 (Preprocess Scaling)
         # 将 Gym 微小的数值放大，使其能落在模糊集的有效区间内
-
         if self.is_goalreach_ros:
             self.scales = torch.tensor([1], device=device)
         elif self.is_obstacle_avoid_ros:
@@ -125,8 +124,8 @@ class FuzzySystem(nn.Module):
                     self.rule_weights[rule_idx, action] = SUPPORT if support else OPPOSE
 
                 # close rules (lidar_i = 0)
-                set_rule(2, 0, 0, True)  # close & LEFT  -> left turn (a0)
-                set_rule(0, 0, 1, True)  # close & RIGHT -> right turn (a1)
+                set_rule(0, 0, 0, True)  # close & LEFT  -> left turn (a0)
+                set_rule(2, 0, 1, True)  # close & RIGHT -> right turn (a1)
 
                 # close & front -> both turns supported, forward opposed（保持）
                 set_rule(1, 0, 0, True)
@@ -134,8 +133,8 @@ class FuzzySystem(nn.Module):
                 set_rule(1, 0, 2, False)
 
                 # far rules (lidar_i = 1)
-                set_rule(2, 1, 0, True)  # far & LEFT  -> a0
-                set_rule(0, 1, 1, True)  # far & RIGHT -> a1
+                set_rule(0, 1, 0, True)  # far & LEFT  -> a0
+                set_rule(2, 1, 1, True)  # far & RIGHT -> a1
                 set_rule(1, 1, 2, True)  # far & FRONT -> a2
             return
 
