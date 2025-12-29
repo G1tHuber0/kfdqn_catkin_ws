@@ -141,7 +141,7 @@ class Config:
             
             if "GoalReach" in self.env_name:
                 self.episodes = 500
-                self.decay_steps = 4000
+                self.decay_steps = 1000
             elif "ObstacleAvoid" in self.env_name:
                 self.episodes = 1000
                 self.decay_steps = 10000

@@ -90,19 +90,19 @@ class ROSGazeboMobileRobotEnv(gym.Env):
         # --- 训练参数 ---
         max_steps: int = 100,          # 单回合最大允许步数
         max_lidar_range: float = 3.5,  # 雷达截断距离（超过此距离按最大值算）
-        forward_v: float = 0.11,       # 直行时的线速度 (m/s)
-        turn_v: float = 0.11,          # 转向时的线速度 (m/s)
-        turn_omega: float = 1.4,       # 转向时的角速度 (rad/s)
+        forward_v: float = 0.2,       # 直行时的线速度 (m/s)
+        turn_v: float = 0.2,          # 转向时的线速度 (m/s)
+        turn_omega: float = math.pi/2,       # 转向时的角速度 (rad/s)
         publish_hz: float = 30.0,      # 控制频率
-        action_duration: float = 0.1,  # 每个动作执行的持续时间
+        action_duration: float = 0.2,  # 每个动作执行的持续时间
         
         # --- 奖励函数参数 ---
         RTH: float = 0.20,             # 到达目标点的判定半径阈值 (Reach Threshold)
         CTH: float = 0.15,             # 碰撞判定阈值 (Collision Threshold)
-        r_reach: float = 200.0,        # 到达目标的稀疏奖励
-        r_collision: float = -150.0,   # 发生碰撞的惩罚
-        p_r: float = 10,               # 势能奖励系数（靠近目标得分，远离扣分）
-        r_o: float = -0.1,             # 时间步惩罚（鼓励尽快到达）
+        r_reach: float = 100.0,        # 到达目标的稀疏奖励
+        r_collision: float = -50.0,   # 发生碰撞的惩罚
+        p_r: float = 50,               # 势能奖励系数（靠近目标得分，远离扣分）
+        r_o: float = -0.2,             # 时间步惩罚（鼓励尽快到达）
         
         # --- 目标设置 ---
         waypoints: list[tuple[float, float]] | None = None, # 任务路径点列表
@@ -515,8 +515,8 @@ class ROSGazeboMobileRobotEnv(gym.Env):
             except rospy.ROSTimeMovedBackwardsException: break
         
         # 等待动作执行后的最新一帧传感器数据
-        t0, timeout = rospy.get_time(), 0.7 
-        rate_wait = rospy.Rate(120)
+        t0, timeout = rospy.get_time(), 0.5 
+        rate_wait = rospy.Rate(100)
         while True:
             scan, odom = self._current_scan, self._current_odom
             if scan and odom and scan.header.seq > scan_seq0: break

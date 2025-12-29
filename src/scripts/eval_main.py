@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 # 导入模块
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-import scripts.envs_ros.env_eval  # 注册环境
+from envs_ros import env_eval  # 注册环境
 from config import Config
 from agents.dqn_agent import DQNAgent
 from agents.kfdqn_agent import KFDQNAgent
@@ -17,13 +17,13 @@ from agents.kfdqn_agent import KFDQNAgent
 # ==========================================
 # 配置部分
 # ==========================================
-ALGO_NAME = "KFDQN"           # 算法名称
-ENV_ID = "GoalReachEval-v0"   # 使用评估环境 (固定路径)
+ALGO_NAME = "DQN"           # 算法名称
+ENV_ID = "GoalReach-v0"   # 使用评估环境 (固定路径)
 
-MODEL_PATH = "src/scripts/outputs/KFDQN_GoalReachTrain-v0_20251226_151643/models/KFDQN_20251226_151643_final.pth"
+MODEL_PATH = "src/scripts/outputs/DQN_GoalReachTrain-v0_20251229_200506/models/DQN_20251229_200506_15000.pth"
 
 EVAL_EPISODES = 100           # 测试多少轮
-MAX_STEPS = 1000               # 防止死循环
+MAX_STEPS = 200               # 防止死循环
 
 def evaluate():
     # 1. 初始化配置 
@@ -36,7 +36,7 @@ def evaluate():
     env = gym.make(ENV_ID, render_mode=None, max_steps=MAX_STEPS) 
     
     # 3. 初始化 Agent 并加载模型
-    agent = KFDQNAgent(cfg)
+    agent = DQNAgent(cfg)
     
     # --- 路径处理逻辑 (防止 FileNotFoundError) ---
     abs_model_path = MODEL_PATH
@@ -78,7 +78,7 @@ def evaluate():
         
         while not (done or truncated):
             # 这里的 take_action 已经是贪婪的了
-            action_result = agent.take_action(state)
+            action_result = agent.take_action(state, 0)
             
             # [关键修正] 解包元组：KFDQNAgent 返回 (action, strategy, q_action)
             # 如果不加这一步，就会报 AssertionError: assert self.action_space.contains(action)
