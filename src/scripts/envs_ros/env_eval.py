@@ -596,7 +596,7 @@ class ROSGazeboMobileRobotEnv(gym.Env):
 if "GoalReach-v0" not in registry:
     register(
         id="GoalReach-v0",
-        entry_point="envs_ros.ros_gazebo_mobile_robot_env:ROSGazeboMobileRobotEnv",
+        entry_point="envs_ros.env_eval:ROSGazeboMobileRobotEnv",
         kwargs={
             "obstacle_mode": False,
             "robot_model_name": "turtlebot3_burger",
@@ -609,7 +609,7 @@ if "GoalReach-v0" not in registry:
 if "ObstacleAvoid-v0" not in registry:
     register(
         id="ObstacleAvoid-v0",
-        entry_point="envs_ros.ros_gazebo_mobile_robot_env:ROSGazeboMobileRobotEnv",
+        entry_point="envs_ros.env_eval:ROSGazeboMobileRobotEnv",
         kwargs={
             "obstacle_mode": True,
             "robot_model_name": "turtlebot3_burger",

@@ -1,4 +1,4 @@
-#!/home/lst/miniconda3/envs/ros_rl/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 # Software License Agreement (BSD License)

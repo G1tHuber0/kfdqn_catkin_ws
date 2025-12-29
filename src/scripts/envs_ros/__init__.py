@@ -1,3 +1,3 @@
 """ROS-based Gymnasium environments for kfdqn_base."""
 
-from . import ros_gazebo_mobile_robot_env  # noqa: F401
+from . import env_eval  # noqa: F401

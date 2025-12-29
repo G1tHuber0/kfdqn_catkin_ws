@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 # 导入模块
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-import envs_ros.ros_gazebo_mobile_robot_env  # 注册环境
+import scripts.envs_ros.env_eval  # 注册环境
 from config import Config
 from agents.dqn_agent import DQNAgent
 from agents.kfdqn_agent import KFDQNAgent

@@ -11,7 +11,7 @@
     </include>
 
     <physics type="ode">
-      <real_time_update_rate>1000.0</real_time_update_rate>
+      <real_time_update_rate>0.0</real_time_update_rate>
       <max_step_size>0.001</max_step_size>
       <real_time_factor>1</real_time_factor>
       <ode>
@@ -42,10 +42,9 @@
         <collision name='obstacle_1'>
           <pose>-0.6 -0.6 0.25 0 0 0</pose>
           <geometry>
-            <cylinder>
-              <radius>0.15</radius>
-              <length>0.5</length>
-            </cylinder>
+            <box>
+              <size>0.30 0.30 0.50</size>
+            </box>
           </geometry>
           <max_contacts>10</max_contacts>
           <surface>
@@ -62,10 +61,9 @@
         <visual name='obstacle_1'>
           <pose>-0.6 -0.6 0.25 0 0 0</pose>
           <geometry>
-            <cylinder>
-              <radius>0.15</radius>
-              <length>0.5</length>
-            </cylinder>
+            <box>
+              <size>0.30 0.30 0.50</size>
+            </box>
           </geometry>
           <material>
             <script>
@@ -78,10 +76,9 @@
         <collision name='obstacle_2'>
           <pose>-0.6 0.6 0.25 0 0 0</pose>
           <geometry>
-            <cylinder>
-              <radius>0.15</radius>
-              <length>0.5</length>
-            </cylinder>
+            <box>
+              <size>0.30 0.30 0.50</size>
+            </box>
           </geometry>
           <max_contacts>10</max_contacts>
           <surface>
@@ -98,10 +95,9 @@
         <visual name='obstacle_2'>
           <pose>-0.6 0.6 0.25 0 0 0</pose>
           <geometry>
-            <cylinder>
-              <radius>0.15</radius>
-              <length>0.5</length>
-            </cylinder>
+            <box>
+              <size>0.30 0.30 0.50</size>
+            </box>
           </geometry>
           <material>
             <script>
@@ -114,10 +110,9 @@
         <collision name='obstacle_3'>
           <pose>0.6 -0.6 0.25 0 0 0</pose>
           <geometry>
-            <cylinder>
-              <radius>0.15</radius>
-              <length>0.5</length>
-            </cylinder>
+            <box>
+              <size>0.30 0.30 0.50</size>
+            </box>
           </geometry>
           <max_contacts>10</max_contacts>
           <surface>
@@ -134,10 +129,9 @@
         <visual name='obstacle_3'>
           <pose>0.6 -0.6 0.25 0 0 0</pose>
           <geometry>
-            <cylinder>
-              <radius>0.15</radius>
-              <length>0.5</length>
-            </cylinder>
+            <box>
+              <size>0.30 0.30 0.50</size>
+            </box>
           </geometry>
           <material>
             <script>
@@ -150,10 +144,9 @@
         <collision name='obstacle_4'>
           <pose>0.6 0.6 0.25 0 0 0</pose>
           <geometry>
-            <cylinder>
-              <radius>0.15</radius>
-              <length>0.5</length>
-            </cylinder>
+            <box>
+              <size>0.30 0.30 0.50</size>
+            </box>
           </geometry>
           <max_contacts>10</max_contacts>
           <surface>
@@ -170,10 +163,133 @@
         <visual name='obstacle_4'>
           <pose>0.6 0.6 0.25 0 0 0</pose>
           <geometry>
-            <cylinder>
-              <radius>0.15</radius>
-              <length>0.5</length>
-            </cylinder>
+            <box>
+              <size>0.30 0.30 0.50</size>
+            </box>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/White</name>
+            </script>
+          </material>
+        </visual>
+        <!-- Added boundary obstacles (ENV2): map is 4x4 => boundaries at x/y = ±2.0 -->
+        <!-- Right boundary (touching inner wall): center at x=+1.85 -->
+        <collision name='obstacle_5'>
+          <pose>1.7 0.0 0.25 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>0.30 0.30 0.50</size>
+            </box>
+          </geometry>
+          <max_contacts>10</max_contacts>
+          <surface>
+            <bounce/>
+            <friction><ode/></friction>
+            <contact><ode/></contact>
+          </surface>
+        </collision>
+
+        <visual name='obstacle_5'>
+          <pose>1.7 0.0 0.25 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>0.30 0.30 0.50</size>
+            </box>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/White</name>
+            </script>
+          </material>
+        </visual>
+
+        <!-- Left boundary: center at x=-1.85 -->
+        <collision name='obstacle_6'>
+          <pose>-1.7 0.0 0.25 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>0.30 0.30 0.50</size>
+            </box>
+          </geometry>
+          <max_contacts>10</max_contacts>
+          <surface>
+            <bounce/>
+            <friction><ode/></friction>
+            <contact><ode/></contact>
+          </surface>
+        </collision>
+
+        <visual name='obstacle_6'>
+          <pose>-1.7 0.0 0.25 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>0.30 0.30 0.50</size>
+            </box>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/White</name>
+            </script>
+          </material>
+        </visual>
+
+        <!-- Top boundary: center at y=+1.85 -->
+        <collision name='obstacle_7'>
+          <pose>0.0 1.7 0.25 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>0.30 0.30 0.50</size>
+            </box>
+          </geometry>
+          <max_contacts>10</max_contacts>
+          <surface>
+            <bounce/>
+            <friction><ode/></friction>
+            <contact><ode/></contact>
+          </surface>
+        </collision>
+
+        <visual name='obstacle_7'>
+          <pose>0.0 1.7 0.25 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>0.30 0.30 0.50</size>
+            </box>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/White</name>
+            </script>
+          </material>
+        </visual>
+
+        <!-- Bottom boundary: center at y=-1.85 -->
+        <collision name='obstacle_8'>
+          <pose>0.0 -1.7 0.25 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>0.30 0.30 0.50</size>
+            </box>
+          </geometry>
+          <max_contacts>10</max_contacts>
+          <surface>
+            <bounce/>
+            <friction><ode/></friction>
+            <contact><ode/></contact>
+          </surface>
+        </collision>
+
+        <visual name='obstacle_8'>
+          <pose>0.0 -1.7 0.25 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>0.30 0.30 0.50</size>
+            </box>
           </geometry>
           <material>
             <script>

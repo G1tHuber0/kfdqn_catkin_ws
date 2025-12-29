@@ -12,8 +12,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 # === 导入项目模块 ===
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
-import envs_ros.ros_gazebo_mobile_robot_env  # 注册训练环境
+from envs_ros import env_eval# 注册 ROS 环境
 from config import Config
 # 注意：这里需要导入 KFDQNAgent
 from agents.kfdqn_agent import KFDQNAgent 
@@ -24,9 +23,9 @@ from utils.replay_buffer import ReplayBuffer
 # 1. 全局配置与参数
 # ==========================================
 ALGO_NAME = "DQN" # 修改算法名称
-ENV_NAME = "ObstacleAvoid-v0" 
+ENV_NAME = "GoalReach-v0" 
 RENDER_MODE = None             
-MAX_STEPS = 200               # 防止死循环
+MAX_STEPS = 100               # 防止死循环
 
 # 自定义模型保存节点 (总步数)
 CHECKPOINT_STEPS = [1000, 2000, 4000, 6000, 8000, 10000, 15000,20000,25000,30000,40000,50000]

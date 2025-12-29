@@ -7,7 +7,7 @@ import gymnasium as gym
 
 # Local modules
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-import envs_ros.ros_gazebo_mobile_robot_env  # register envs
+import scripts.envs_ros.env_eval  # register envs
 from config import Config
 from agents.dqn_agent import DQNAgent
 from agents.double_dqn_agent import DoubleDQNAgent

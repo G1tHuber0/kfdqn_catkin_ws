@@ -13,7 +13,7 @@ from torch.utils.tensorboard import SummaryWriter
 # === 导入项目模块 ===
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-import envs_ros.ros_gazebo_mobile_robot_env  # 注册训练环境
+import scripts.envs_ros.env_eval  # 注册训练环境
 from config import Config
 # 导入两种 Agent，方便切换
 from agents.kfdqn_agent import KFDQNAgent 

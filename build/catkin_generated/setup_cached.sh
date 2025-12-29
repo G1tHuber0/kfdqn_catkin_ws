@@ -8,7 +8,7 @@
 
 # modified environment variables
 export CMAKE_PREFIX_PATH="/home/lst/kfdqn_catkin_ws/devel:$CMAKE_PREFIX_PATH"
+export PATH='/opt/ros/noetic/bin:/home/lst/.local/bin:/home/lst/pycharm/bin:/usr/local/cuda-12.8/bin:/home/lst/.config/Code/User/globalStorage/github.copilot-chat/debugCommand:/home/lst/.config/Code/User/globalStorage/github.copilot-chat/copilotCli:/home/lst/.local/bin:/home/lst/.local/bin:/home/lst/pycharm/bin:/usr/local/cuda-12.8/bin:/home/lst/anaconda3/condabin:/home/lst/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin'
 export PWD='/home/lst/kfdqn_catkin_ws/build'
-export PYTHONPATH='/opt/ros/noetic/lib/python3/dist-packages'
 export ROSLISP_PACKAGE_DIRECTORIES='/home/lst/kfdqn_catkin_ws/devel/share/common-lisp'
 export ROS_PACKAGE_PATH="/home/lst/kfdqn_catkin_ws/src:$ROS_PACKAGE_PATH"
