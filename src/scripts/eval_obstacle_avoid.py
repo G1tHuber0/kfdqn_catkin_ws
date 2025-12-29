@@ -18,11 +18,10 @@ from agents.kfdqn_agent import KFDQNAgent
 # Config
 # =============================
 ALGO_NAME = "KFDQN"
-ENV_ID = "ObstacleAvoidEval-v0"
+ENV_NAME = "ObstacleAvoid-v0"
 MODEL_PATH = "src/scripts/outputs/KFDQN_ObstacleAvoidROS-v0_YYYYMMDD_HHMMSS/models/KFDQN_YYYYMMDD_HHMMSS_final.pth"
 
 EVAL_EPISODES = 100
-MAX_STEPS = 1000
 
 
 def _resolve_model_path(model_path: str) -> str:
@@ -54,7 +53,7 @@ def _select_action(agent, state):
 
 
 def evaluate():
-    cfg = Config(algo=ALGO_NAME, env_name=ENV_ID)
+    cfg = Config(algo=ALGO_NAME, env_name=ENV_NAME)
     cfg.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     if cfg.h1 is None:
@@ -62,7 +61,7 @@ def evaluate():
     if cfg.h2 is None:
         cfg.h2 = 1.0
 
-    env = gym.make(ENV_ID, render_mode=None, max_steps=MAX_STEPS)
+    env = gym.make(ENV_NAME, render_mode=None)
 
     agent = _build_agent(cfg)
     abs_model_path = _resolve_model_path(MODEL_PATH)
@@ -82,26 +81,25 @@ def evaluate():
 
     print("-" * 40)
     print(f"Start Evaluation: {EVAL_EPISODES} Episodes")
-    print(f"Env:   {ENV_ID}")
+    print(f"Env:   {ENV_NAME}")
     print(f"Model: {abs_model_path}")
     print("-" * 40)
 
     for ep in range(1, EVAL_EPISODES + 1):
-        state, _ = env.reset()
-        done = False
+        # 固定随机种子，保证评估可复现
+        state, _ = env.reset(seed=cfg.seed)
+        terminated = False
         truncated = False
         ep_return = 0.0
         info = {}
         steps = 0
 
-        while not (done or truncated):
+        while not (terminated or truncated):
             action = _select_action(agent, state)
-            next_state, reward, done, truncated, info = env.step(action)
+            next_state, reward, terminated, truncated, info = env.step(action)
             state = next_state
             ep_return += float(reward)
             steps += 1
-            if steps >= MAX_STEPS:
-                truncated = True
 
         is_success = bool(info.get("is_success", False))
         is_collision = bool(info.get("is_collision", False))

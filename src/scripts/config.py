@@ -138,8 +138,10 @@ class Config:
             
             # [修改] 衰减步数：在接下来的 50,000 步内衰减到 0.01
             # 假设总步数约为 500回 * 200步 = 100,000步，这里衰减到训练的一半
-            self.decay_steps = 4000
+            
             if "GoalReach" in self.env_name:
                 self.episodes = 500
-            elif "ObstacleAvoidROS" in self.env_name:
+                self.decay_steps = 4000
+            elif "ObstacleAvoid" in self.env_name:
                 self.episodes = 1000
+                self.decay_steps = 10000

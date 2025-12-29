@@ -26,11 +26,10 @@ from utils.replay_buffer import ReplayBuffer
 # [修改] 算法名称: 可选 "KFDQN" 或 "DQN"
 ALGO_NAME = "KFDQN" 
 
-# [修改] 环境 ID: 使用避障训练环境
-ENV_NAME = "ObstacleAvoidTrain-v0" 
+# [修改] 环境 ID: 使用固定避障环境
+ENV_NAME = "ObstacleAvoid-v0" 
 
 RENDER_MODE = None             
-MAX_STEPS = 150               # [修改] 避障任务可能需要更多步数绕路，稍微调大一点防止过早截断
 
 # 自定义模型保存节点 (总步数)
 CHECKPOINT_STEPS = [2000, 5000, 10000, 20000, 30000, 50000, 75000, 100000, 150000]
@@ -62,7 +61,7 @@ def main():
     # cfg.episodes = 1000 
     
     # 2. 创建环境
-    env = gym.make(ENV_NAME, render_mode=RENDER_MODE, max_steps=MAX_STEPS)
+    env = gym.make(ENV_NAME, render_mode=RENDER_MODE)
     
     # 3. 设置随机种子
     np.random.seed(cfg.seed+1)
@@ -121,7 +120,7 @@ def main():
             else:
                 agent.update_epsilon(total_steps)
 
-            action_result = agent.take_action(state, episode_idx=total_steps)
+            action_result = agent.take_action(state, episode_idx=i_episode)
             
             if isinstance(action_result, tuple):
                 action = action_result[0]      # 解包 action (int)

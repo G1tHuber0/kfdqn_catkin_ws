@@ -24,9 +24,9 @@ from utils.replay_buffer import ReplayBuffer
 # 1. 全局配置与参数
 # ==========================================
 ALGO_NAME = "DQN" # 修改算法名称
-ENV_NAME = "GoalReachTrain-v0" 
+ENV_NAME = "ObstacleAvoid-v0" 
 RENDER_MODE = None             
-MAX_STEPS = 100               # 防止死循环
+MAX_STEPS = 200               # 防止死循环
 
 # 自定义模型保存节点 (总步数)
 CHECKPOINT_STEPS = [1000, 2000, 4000, 6000, 8000, 10000, 15000,20000,25000,30000,40000,50000]
@@ -171,7 +171,7 @@ def main():
         
         # TensorBoard
         writer.add_scalar('Episode/01-Reward', ep_reward, i_episode)
-        writer.add_scalar('Episode/05Steps', ep_steps, i_episode)
+        writer.add_scalar('Episode/05-Steps', ep_steps, i_episode)
         writer.add_scalar('Episode/02-Epsilon', agent.epsilon, i_episode)
         writer.add_scalar('Episode/04-Avg_Loss', avg_loss, i_episode)
         writer.add_scalar('Episode/03-Success', is_success, i_episode)
@@ -187,8 +187,8 @@ def main():
         # 终端详细打印
         if i_episode % 1 == 0:
             log_str = (
-                f"Ep {i_episode:<4} || "                  
-                f"R: {ep_reward:>6.2f} | "               
+                f"Ep {i_episode:<3} || "                  
+                f"R: {ep_reward:>7.2f} | "               
                 f"Steps: {ep_steps:>4} | "               
                 f"Loss: {avg_loss:>6.3f} | "             
                 f"Eps: {agent.epsilon:.3f} | "           
