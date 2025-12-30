@@ -100,11 +100,11 @@ class Config:
             self.train_freq = 1
             
             # KFDQN 核心参数 (论文/经验值)
-            self.h1 = 0.1
-            self.h2 = 0.08
-            self.ep_r = 100
+            self.h1 = 0.4
+            self.h2 = 0.6
+            self.ep_r = 50
             self.C_update = 100
-            self.m_base = 0.35
+            self.m_base = 0.8
             self.m_decay = 0.6
             self.m_tau = 100
             
@@ -138,7 +138,7 @@ class Config:
         if "ObstacleAvoid" in self.env_name:
             # 避障任务通常更难，需要更多轮次和更慢的衰减
             self.episodes = 1000
-            self.decay_steps = 10000 
+            self.decay_steps = 2000 
         else:
             # 默认为 GoalReach (寻路任务)
             self.episodes = 500

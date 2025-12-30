@@ -13,13 +13,13 @@ class ROSMobileFuzzyConfig:
     # 状态量归一化映射: theta_norm 在 [-1,1], lidar_norm 在 [0,1]
     ANTECEDENT_CENTERS = [
         [math.pi, 0.0, -math.pi],   # 维度0 (Theta): 对应 左(Left), 前(Front), 右(Right)
-        [0.2, 0.5],      # 维度1 (Lidar): 对应 近(Close, 靠近碰撞线), 远(Far)
+        [0.5, 1.5],      # 维度1 (Lidar): 对应 近(Close, 靠近碰撞线), 远(Far)
     ]
     
     # 高斯隶属度函数的标准差(Sigma)，通过公式 sigma = width/4 换算而来
     ANTECEDENT_SIGMAS = [
-        [2, 0.4, 2], # 对应 theta 的 w=[1, 0.75, 1]
-        [0.2, 0.4],      # 对应 lidar 的 w=[0.5, 2.75]
+        [2, 0.5, 2], # 对应 theta 的 w=[1, 0.75, 1]
+        [0.3, 0.3],      # 对应 lidar 的 w=[0.5, 2.75]
     ]
 
     # 预定义的规则权重极值：支持(Support)或反对(Oppose)
@@ -112,9 +112,9 @@ class FuzzySystem(nn.Module):
             nn.init.constant_(self.rule_weights, OPPOSE)
             with torch.no_grad():
                 # 根据角度方向推荐动作 (目标在左推荐左转，以此类推)
-                self.rule_weights[0, 1] = SUPPORT # Rule 0: target left
+                self.rule_weights[2, 1] = SUPPORT # Rule 0: target left
                 self.rule_weights[1, 2] = SUPPORT # Rule 1: target front
-                self.rule_weights[2, 0] = SUPPORT # Rule 2: target right
+                self.rule_weights[0, 0] = SUPPORT # Rule 2: target right
             return
 
         if self.is_obstacle_avoid_ros:
@@ -133,7 +133,7 @@ class FuzzySystem(nn.Module):
                 # --- 语义知识 2: 障碍物近 且 目标在前 -> 左转 (a0) 或 右转 (a1) ---
                 # 逻辑: theta_i=1 (前), lidar_i=0 (近) -> idx = 1*2+0 = 2
                 self.rule_weights[2, 0] = SUPPORT # 支持左转避障
-                self.rule_weights[2, 1] = OPPOSE 
+                self.rule_weights[2, 1] = SUPPORT 
                 self.rule_weights[2, 2] = OPPOSE  # 明确反对直行 (防止碰撞)
 
                 # --- 语义知识 5: 障碍物远 且 目标在前 -> 直行 (Action 2) ---
@@ -169,15 +169,15 @@ class FuzzySystem(nn.Module):
             theta_d = state[..., 90] 
             
             if self.is_obstacle_avoid_ros:
-                # 核心修正：从原始 state (0-89位是雷达) 提取数据，而不是从 theta_d 提取
-                # 1. 右前方: 270° 到 360° (对应索引 67 到 89)
-                lidar_right_front = state[..., 67:90] 
-                # 2. 左前方: 0° 到 90° (对应索引 0 到 22)
-                lidar_left_front = state[..., 0:22] 
+                # # 核心修正：从原始 state (0-89位是雷达) 提取数据，而不是从 theta_d 提取
+                # # 1. 右前方: 270° 到 360° (对应索引 67 到 89)
+                # lidar_right_front = state[..., 67:90] 
+                # # 2. 左前方: 0° 到 90° (对应索引 0 到 22)
+                # lidar_left_front = state[..., 0:22] 
 
-                # 拼接前方 180 度区域并取最小值
-                lidar_180 = torch.cat([lidar_right_front, lidar_left_front], dim=-1)
-                min_lidar = lidar_180.min(dim=-1).values
+                # # 拼接前方 180 度区域并取最小值
+                # lidar_180 = torch.cat([lidar_right_front, lidar_left_front], dim=-1)
+                min_lidar =  state[..., 0:90].min(dim=-1).values
 
                 # 核心修正：将 角度(theta_d) 和 最小值(min_lidar) 堆叠，形成 [Batch, 2] 的特征
                 feats = torch.stack([theta_d, min_lidar], dim=-1)

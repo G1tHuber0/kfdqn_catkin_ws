@@ -93,9 +93,6 @@ class ROSGazeboMobileRobotTrainEnv(gym.Env):
         forward_v: float = 0.2,             # 直行线速度 (m/s)
         turn_v: float = 0.2,                # 转向时的线速度 (m/s)
         turn_omega: float = math.pi/2,             # 转向时的角速度 (rad/s)
-        # forward_v: float = 0.1,             # 直行线速度 (m/s)
-        # turn_v: float = 0.1,                # 转向时的线速度 (m/s)
-        # turn_omega: float = math.pi/4,             # 转向时的角速度 (rad/s)
         publish_hz: float = 30.0,            # 指令发布频率 (Hz)
         action_duration: float = 0.2,        # 单步动作物理执行持续时间 (s)
 
@@ -342,7 +339,8 @@ class ROSGazeboMobileRobotTrainEnv(gym.Env):
         """随机采样机器人的起始位姿和初始随机朝向"""
         x, y = self._sample_uniform_xy()
         yaw = float(self._np_random.uniform(-math.pi, math.pi))
-        return x, y, yaw
+        # return x, y, yaw
+        return 0, 0, 0
 
     def _sample_goal(self, robot_x: float, robot_y: float) -> Tuple[float, float]:
         """
@@ -654,6 +652,6 @@ if "ObstacleAvoidTrain-v0" not in registry:
         kwargs={
             "obstacle_mode": True,
             "robot_model_name": "turtlebot3_burger",
-            "max_steps": 200,
+            "max_steps": 100,
         },
     )

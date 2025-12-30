@@ -4,7 +4,7 @@ import sys
 import time
 import datetime
 import csv
-from collections import deque  # [新增] 引入双端队列用于滑动窗口
+from collections import deque
 
 import torch
 import numpy as np
@@ -14,7 +14,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 # === 导入项目模块 ===
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from envs_ros import env_train  # noqa: F401  (注册训练环境)
+from envs_ros import env_train  # noqa: F401
 from config import Config
 from agents.kfdqn_agent import KFDQNAgent
 from agents.dqn_agent import DQNAgent
@@ -29,6 +29,7 @@ from utils.replay_buffer import ReplayBuffer
 # ALGO_NAME = "DoubleDQN"
 # ALGO_NAME = "DuelingDQN"
 ALGO_NAME = "KFDQN"
+
 ENV_NAME = "ObstacleAvoidTrain-v0"
 RENDER_MODE = None
 
@@ -36,10 +37,11 @@ CONTINUE_ON_SUCCESS = False
 
 MAX_EPISODES = 1000
 MAX_TRAIN_STEPS = 99999999
-MAX_EPISODE_STEPS = 200
+MAX_EPISODE_STEPS = 100
 
-# [自定义] 成功率统计窗口大小
-SUCCESS_WINDOW_SIZE = 10 
+# [自定义] 
+SUCCESS_WINDOW_SIZE = 100 # 成功率统计窗口大小
+COLLISION_WINDOW_SIZE = 100  # 碰撞率统计窗口
 
 CHECKPOINT_STEPS = [2000, 5000, 10000, 20000, 30000, 50000, 75000, 100000, 150000]
 
@@ -83,13 +85,15 @@ def main() -> None:
     replay_buffer = ReplayBuffer(cfg.buffer_size)
     writer = SummaryWriter(log_dir=LOG_DIR)
 
-    # [新增] 初始化成功率统计队列
+    # 初始化统计队列
     success_window = deque(maxlen=SUCCESS_WINDOW_SIZE)
+    collision_window = deque(maxlen=COLLISION_WINDOW_SIZE) 
 
     csv_path = os.path.join(DATA_DIR, "training_log.csv")
     csv_file = open(csv_path, mode="w", newline="", encoding="utf-8")
     csv_writer = csv.writer(csv_file)
-    csv_writer.writerow(["Episode", "Total_Steps", "Reward", "Ep_Steps", "Epsilon", "Avg_Loss", "Success", "Collision"])
+    # [修改] CSV头增加 Consistency
+    csv_writer.writerow(["Episode", "Total_Steps", "Reward", "Ep_Steps", "Epsilon", "Avg_Loss", "Success", "Collision", "Consistency"])
 
     print(f"{'='*40}")
     print(f"   Start Training: {ALGO_NAME} (Env2Train)")
@@ -122,18 +126,40 @@ def main() -> None:
         truncated = False
         info = {}
 
+        # [KFDQN统计] 初始化单回合统计变量
+        kfdqn_stats = {
+            "hybrid_steps": 0,      # 执行混合策略的总步数
+            "consistent_steps": 0   # 混合结果与Q网络一致的步数
+        }
+
         while not (done or truncated):
             if total_steps >= MAX_TRAIN_STEPS:
                 break
             
             if ALGO_NAME == "KFDQN":
-                agent.update_parameters(i_episode, current_steps=total_steps)
+                kfdqn_m, kfdqn_n = agent.update_parameters(i_episode, current_steps=total_steps)
 
             action_result = agent.take_action(state, total_steps)
+            
+            # 解析动作返回结果
+            action = 0
+            strategy_tag = "unknown"
+            q_choice = None # Q网络原本想选的动作
+
             if isinstance(action_result, tuple):
                 action = action_result[0]
+                if len(action_result) >= 2: strategy_tag = action_result[1]
+                if len(action_result) >= 3: q_choice = action_result[2]
             else:
                 action = action_result
+
+            # [KFDQN统计] 统计一致性
+            # 只统计 'hya' (Hybrid Action) 阶段，排除 'a_f' (强制模糊) 和 'eps' (随机探索)
+            if ALGO_NAME == "KFDQN" and strategy_tag == 'hya':
+                kfdqn_stats["hybrid_steps"] += 1
+                # 如果最终混合动作 == Q网络想选的动作，视为一致
+                if q_choice is not None and action == q_choice:
+                    kfdqn_stats["consistent_steps"] += 1
 
             next_state, reward, done, truncated, info = env.step(action)
 
@@ -154,7 +180,12 @@ def main() -> None:
                     "rewards": b_r,
                     "dones": b_d,
                 }
-                loss_info = agent.update(transition_dict, episode_idx=i_episode)
+                
+                # 区分算法更新接口
+                if ALGO_NAME == "KFDQN":
+                    loss_info = agent.update(transition_dict, episode_idx=i_episode)
+                else:
+                    loss_info = agent.update(transition_dict)
 
                 current_loss = 0.0
                 if isinstance(loss_info, dict):
@@ -182,33 +213,48 @@ def main() -> None:
         is_success = 1 if info.get("is_success", False) else 0
         is_collision = 1 if info.get("is_collision", False) else 0
 
-        # [修改] 计算滑动窗口成功率
+        # 统计滑动窗口
         success_window.append(is_success)
         avg_success_rate = sum(success_window) / len(success_window)
+        collision_window.append(is_collision)
+        avg_collision_rate = sum(collision_window) / len(collision_window)
+
+        # [KFDQN统计] 计算本回合的一致性比率
+        consistency_rate = 0.0
+        if kfdqn_stats["hybrid_steps"] > 0:
+            consistency_rate = kfdqn_stats["consistent_steps"] / kfdqn_stats["hybrid_steps"]
 
         writer.add_scalar("Episode/01-Reward", ep_reward, i_episode)
-        writer.add_scalar("Episode/05-Steps", ep_steps, i_episode)
-        writer.add_scalar("Episode/02-Epsilon", agent.epsilon, i_episode)
+        writer.add_scalar("Episode/06-Steps", ep_steps, i_episode)
+        writer.add_scalar("Episode/05-Epsilon", agent.epsilon, i_episode)
         writer.add_scalar("Episode/04-Avg_Loss", avg_loss, i_episode)
-        # [修改] 记录最近 N 回合的平均成功率
-        writer.add_scalar(f"Episode/03-SuccessRate_Last{SUCCESS_WINDOW_SIZE}", avg_success_rate, i_episode)
-        writer.add_scalar("Episode/07-Collision", is_collision, i_episode)
+        writer.add_scalar(f"Episode/02-SuccessRate_Last{SUCCESS_WINDOW_SIZE}", avg_success_rate, i_episode)
+        writer.add_scalar(f"Episode/03-CollisionRate_Last{COLLISION_WINDOW_SIZE}", avg_collision_rate, i_episode)
 
-        if hasattr(agent, "m"):
-            writer.add_scalar("Episode/06-HybridWeight_m", agent.m, i_episode)
+        if ALGO_NAME == "KFDQN":
+            # 记录一致性比率
+            writer.add_scalar("KFDQN/00-ActionConsistency", consistency_rate, i_episode)
+            writer.add_scalar("KFDQN/01-HybridWeight_m", kfdqn_m, i_episode)
+            writer.add_scalar("KFDQN/02-HybridWeight_n", kfdqn_n, i_episode)
+            if hasattr(agent, "h1"):
+                writer.add_scalar("KFDQN/03-HybridWeight_h1", agent.h1, i_episode)
+            if hasattr(agent, "h2"):
+                writer.add_scalar("KFDQN/04-HybridWeight_h2", agent.h2, i_episode)
 
-        csv_writer.writerow([i_episode, total_steps, ep_reward, ep_steps, agent.epsilon, avg_loss, is_success, is_collision])
+        csv_writer.writerow([i_episode, total_steps, ep_reward, ep_steps, agent.epsilon, avg_loss, is_success, is_collision, consistency_rate])
         csv_file.flush()
 
         log_str = (
             f"Ep {i_episode:<4} || "
             f"R: {ep_reward:>6.2f} | "
-            f"Steps: {ep_steps:>4} | "
-            f"Loss: {avg_loss:>6.3f} | "
-            f"Eps: {agent.epsilon:.3f} | "
-            f"SR_{SUCCESS_WINDOW_SIZE}: {avg_success_rate:>4.2f} | "  # [新增] 终端显示滑动成功率
-            f"End: {bool(is_success)!s:<5} | "
+            f"Step: {ep_steps:>3} | "
+            f"Loss: {avg_loss:>5.3f} | "
+            f"SR: {avg_success_rate:>4.2f} | "
+            f"End: {bool(is_success)!s:<5} "
         )
+        if ALGO_NAME == "KFDQN":
+            log_str += f"| Cons: {consistency_rate:.2f}"
+            
         tqdm.write(log_str)
 
         if total_steps >= MAX_TRAIN_STEPS:
