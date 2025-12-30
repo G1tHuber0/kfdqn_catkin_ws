@@ -31,7 +31,8 @@ class DoubleDQNAgent:
         self.is_training = False
         self.q_net.eval()
 
-    def take_action(self, state):
+    def take_action(self, state, episode_idx):
+        self.update_epsilon(episode_idx)
         if self.is_training and np.random.random() <= self.epsilon:
             return np.random.randint(self.action_dim)
         state_tensor = torch.tensor(np.array([state]), dtype=torch.float).to(self.device)
@@ -44,7 +45,7 @@ class DoubleDQNAgent:
     def update_epsilon(self, episode_idx):
         self.epsilon = get_linear_decay_epsilon(episode_idx, self.cfg)
 
-    def update(self, transition_dict):
+    def update(self, transition_dict, episode_idx):
         if not self.is_training:
             return 0.0
 

@@ -18,12 +18,17 @@ from envs_ros import env_train  # noqa: F401
 from config import Config
 from agents.kfdqn_agent import KFDQNAgent
 from agents.dqn_agent import DQNAgent
+from agents.double_dqn_agent import DoubleDQNAgent
+from agents.dueling_dqn_agent import DuelingDQNAgent
 from utils.replay_buffer import ReplayBuffer
 
 # ==========================================
 # 1. 全局配置与参数
 # ==========================================
 ALGO_NAME = "DQN"
+# ALGO_NAME = "DoubleDQN"
+# ALGO_NAME = "DuelingDQN"
+# ALGO_NAME = "KFDQN"
 ENV_NAME = "GoalReachTrain-v0"
 RENDER_MODE = None
 
@@ -40,7 +45,7 @@ CHECKPOINT_STEPS = [1000, 2000, 4000, 6000, 8000, 10000, 15000, 20000, 25000, 30
 
 TIMESTAMP = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-OUTPUT_DIR = os.path.join(BASE_DIR, "outputs", f"{ALGO_NAME}_{ENV_NAME}_{TIMESTAMP}")
+OUTPUT_DIR = os.path.join(BASE_DIR, f"outputs/{ENV_NAME}", f"{ALGO_NAME}_{ENV_NAME}_{TIMESTAMP}")
 LOG_DIR = os.path.join(OUTPUT_DIR, "logs")
 MODEL_DIR = os.path.join(OUTPUT_DIR, "models")
 DATA_DIR = os.path.join(OUTPUT_DIR, "data")
@@ -52,6 +57,7 @@ os.makedirs(DATA_DIR, exist_ok=True)
 def main() -> None:
     cfg = Config(algo=ALGO_NAME, env_name=ENV_NAME)
     cfg.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    seed_global = cfg.seed + 99
 
     env = gym.make(
         ENV_NAME,
@@ -60,10 +66,16 @@ def main() -> None:
         continue_on_success=CONTINUE_ON_SUCCESS,
     )
 
-    np.random.seed(cfg.seed + 1)
-    torch.manual_seed(cfg.seed + 1)
-
-    agent = DQNAgent(cfg)
+    np.random.seed(seed_global)
+    torch.manual_seed(seed_global)
+    if ALGO_NAME == "KFDQN":
+        agent = KFDQNAgent(cfg)
+    elif ALGO_NAME == "DoubleDQN":
+        agent = DoubleDQNAgent(cfg)
+    elif ALGO_NAME == "DuelingDQN":
+        agent = DuelingDQNAgent(cfg)
+    else:
+        agent = DQNAgent(cfg)
     agent.train_mode()
 
     replay_buffer = ReplayBuffer(cfg.buffer_size)
@@ -97,7 +109,7 @@ def main() -> None:
         if total_steps >= MAX_TRAIN_STEPS:
             break
 
-        state, _ = env.reset(seed=cfg.seed + i_episode)
+        state, _ = env.reset(seed=seed_global + i_episode)
         ep_reward = 0.0
         ep_steps = 0
         ep_losses: list[float] = []

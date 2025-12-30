@@ -434,7 +434,7 @@ class ROSGazeboMobileRobotEnv(gym.Env):
             scan_seq0 = self._current_scan.header.seq if self._current_scan else -1
             self._current_scan = self._current_odom = None
 
-            self._call_reset()
+            # self._call_reset()
             self._call_set_model_state()
             self._publish_cmd(0.0, 0.0)
 

@@ -207,6 +207,17 @@ class ROSGazeboMobileRobotTrainEnv(gym.Env):
 
         self.path_msg: Optional[Path] = None # 用于 Rviz 轨迹显示的路径消息
 
+        self.obstacles = [
+            (-0.6, -0.6, 0.35), # 左下
+            (-0.6,  0.6, 0.35), # 左上
+            ( 0.6, -0.6, 0.35), # 右下
+            ( 0.6,  0.6, 0.35), # 右上
+            ( 1.7,  0.0, 0.35), # 右边界中心
+            (-1.7,  0.0, 0.35), # 左边界中心
+            ( 0.0,  1.7, 0.35), # 上边界中心
+            ( 0.0, -1.7, 0.35), # 下边界中心
+        ]
+
     def _scan_cb(self, msg: LaserScan):
         """激光雷达订阅回调：缓存最新的一帧传感器数据对象"""
         self._current_scan = msg
@@ -333,17 +344,36 @@ class ROSGazeboMobileRobotTrainEnv(gym.Env):
     def _sample_goal(self, robot_x: float, robot_y: float) -> Tuple[float, float]:
         """
         随机目标采样 (带约束)：
-        尝试采样一个点，确保它离机器人当前位置不至于太近（没有学习意义）也不至于太远（采样难度大）。
-        设定了 500 次尝试上限以防止死循环。
+        1. 距离机器人 min ~ max 范围。
+        2. [新增] 不生成在已知障碍物内部。
         """
         lim = self.map_xy_limit - self.wall_margin
-        for _ in range(500):
+        
+        for _ in range(1000): # 增加尝试次数
             gx = float(self._np_random.uniform(-lim, lim))
             gy = float(self._np_random.uniform(-lim, lim))
+            
+            # 1. 距离检查
             d = float(math.hypot(gx - robot_x, gy - robot_y))
-            if self.goal_d_min <= d <= self.goal_d_max:
+            if not (self.goal_d_min <= d <= self.goal_d_max):
+                continue
+                
+            # 2. [新增] 障碍物碰撞检查
+            is_valid = True
+            for ox, oy, r in self.obstacles:
+                # 计算目标点到障碍物中心的距离
+                dist_to_obs = math.hypot(gx - ox, gy - oy)
+                if dist_to_obs < r: # 如果落在障碍物半径内
+                    is_valid = False
+                    break
+            
+            if is_valid:
                 return gx, gy
-        raise RuntimeError("Failed to sample a valid goal within distance constraints.")
+                
+        # 如果实在找不到，回退到原来的逻辑（或者抛出更详细的错误）
+        print(f"Warning: Could not find valid goal away from obstacles for robot at ({robot_x:.2f}, {robot_y:.2f})")
+        # 即使失败也返回一个随机点，防止程序崩溃，但在训练中可能会有些“坏”数据
+        return gx, gy
 
     def _publish_current_wp_marker(self) -> None:
         """在 Rviz 中发布一个红色球体，直观显示机器人当前需要追逐的目标位置"""
@@ -392,7 +422,7 @@ class ROSGazeboMobileRobotTrainEnv(gym.Env):
             scan_seq0 = self._current_scan.header.seq if self._current_scan else -1
             self._current_scan = self._current_odom = None # 显式清空以等待新数据
 
-            self._call_reset() # 全局重置
+            # self._call_reset() # 全局重置
 
             self.init_x, self.init_y, self.init_yaw = rx, ry, ryaw
             self._call_set_model_state() # 强制位姿重置

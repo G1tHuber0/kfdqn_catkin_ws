@@ -4,6 +4,7 @@ import sys
 import time
 import datetime
 import csv
+from collections import deque  # [新增] 引入双端队列用于滑动窗口
 
 import torch
 import numpy as np
@@ -17,27 +18,35 @@ from envs_ros import env_train  # noqa: F401  (注册训练环境)
 from config import Config
 from agents.kfdqn_agent import KFDQNAgent
 from agents.dqn_agent import DQNAgent
+from agents.double_dqn_agent import DoubleDQNAgent
+from agents.dueling_dqn_agent import DuelingDQNAgent
 from utils.replay_buffer import ReplayBuffer
 
 # ==========================================
 # 1. 全局配置与参数
 # ==========================================
-ALGO_NAME = "DQN"
+# ALGO_NAME = "DQN"
+ALGO_NAME = "DoubleDQN"
+# ALGO_NAME = "DuelingDQN"
+# ALGO_NAME = "KFDQN"
 ENV_NAME = "ObstacleAvoidTrain-v0"
 RENDER_MODE = None
 
 CONTINUE_ON_SUCCESS = False
 
 MAX_EPISODES = 1000
-MAX_TRAIN_STEPS = 150_000
-MAX_EPISODE_STEPS = 1000
+MAX_TRAIN_STEPS = 99999999
+MAX_EPISODE_STEPS = 200
+
+# [自定义] 成功率统计窗口大小
+SUCCESS_WINDOW_SIZE = 10 
 
 CHECKPOINT_STEPS = [2000, 5000, 10000, 20000, 30000, 50000, 75000, 100000, 150000]
 
 TIMESTAMP = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-OUTPUT_DIR = os.path.join(BASE_DIR, "outputs", f"{ALGO_NAME}_{ENV_NAME}_{TIMESTAMP}")
+OUTPUT_DIR = os.path.join(BASE_DIR, f"outputs/{ENV_NAME}", f"{ALGO_NAME}_{ENV_NAME}_{TIMESTAMP}")
 LOG_DIR = os.path.join(OUTPUT_DIR, "logs")
 MODEL_DIR = os.path.join(OUTPUT_DIR, "models")
 DATA_DIR = os.path.join(OUTPUT_DIR, "data")
@@ -50,7 +59,7 @@ os.makedirs(DATA_DIR, exist_ok=True)
 def main() -> None:
     cfg = Config(algo=ALGO_NAME, env_name=ENV_NAME)
     cfg.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
+    seed_global = cfg.seed + 99
     env = gym.make(
         ENV_NAME,
         render_mode=RENDER_MODE,
@@ -58,14 +67,24 @@ def main() -> None:
         continue_on_success=CONTINUE_ON_SUCCESS,
     )
 
-    np.random.seed(cfg.seed + 1)
-    torch.manual_seed(cfg.seed + 1)
+    np.random.seed(seed_global)
+    torch.manual_seed(seed_global)
 
-    agent = DQNAgent(cfg)
+    if ALGO_NAME == "KFDQN":
+        agent = KFDQNAgent(cfg)
+    elif ALGO_NAME == "DoubleDQN":
+        agent = DoubleDQNAgent(cfg)
+    elif ALGO_NAME == "DuelingDQN":
+        agent = DuelingDQNAgent(cfg)
+    else:
+        agent = DQNAgent(cfg)
     agent.train_mode()
 
     replay_buffer = ReplayBuffer(cfg.buffer_size)
     writer = SummaryWriter(log_dir=LOG_DIR)
+
+    # [新增] 初始化成功率统计队列
+    success_window = deque(maxlen=SUCCESS_WINDOW_SIZE)
 
     csv_path = os.path.join(DATA_DIR, "training_log.csv")
     csv_file = open(csv_path, mode="w", newline="", encoding="utf-8")
@@ -93,7 +112,7 @@ def main() -> None:
         if total_steps >= MAX_TRAIN_STEPS:
             break
 
-        state, _ = env.reset(seed=cfg.seed + i_episode)
+        state, _ = env.reset(seed=seed_global + i_episode)
         ep_reward = 0.0
         ep_steps = 0
         ep_losses: list[float] = []
@@ -105,9 +124,9 @@ def main() -> None:
             if total_steps >= MAX_TRAIN_STEPS:
                 break
 
-            agent.update_parameters(i_episode, current_steps=total_steps)
+            # agent.update_parameters(i_episode, current_steps=total_steps)
 
-            action_result = agent.take_action(state, episode_idx=i_episode)
+            action_result = agent.take_action(state, total_steps)
             if isinstance(action_result, tuple):
                 action = action_result[0]
             else:
@@ -160,11 +179,16 @@ def main() -> None:
         is_success = 1 if info.get("is_success", False) else 0
         is_collision = 1 if info.get("is_collision", False) else 0
 
+        # [修改] 计算滑动窗口成功率
+        success_window.append(is_success)
+        avg_success_rate = sum(success_window) / len(success_window)
+
         writer.add_scalar("Episode/01-Reward", ep_reward, i_episode)
         writer.add_scalar("Episode/05-Steps", ep_steps, i_episode)
         writer.add_scalar("Episode/02-Epsilon", agent.epsilon, i_episode)
         writer.add_scalar("Episode/04-Avg_Loss", avg_loss, i_episode)
-        writer.add_scalar("Episode/03-Success", is_success, i_episode)
+        # [修改] 记录最近 N 回合的平均成功率
+        writer.add_scalar(f"Episode/03-SuccessRate_Last{SUCCESS_WINDOW_SIZE}", avg_success_rate, i_episode)
         writer.add_scalar("Episode/07-Collision", is_collision, i_episode)
 
         if hasattr(agent, "m"):
@@ -179,8 +203,8 @@ def main() -> None:
             f"Steps: {ep_steps:>4} | "
             f"Loss: {avg_loss:>6.3f} | "
             f"Eps: {agent.epsilon:.3f} | "
-            f"Succ: {bool(is_success)!s:<5} | "
-            f"Coll: {bool(is_collision)!s:<5}"
+            f"SR_{SUCCESS_WINDOW_SIZE}: {avg_success_rate:>4.2f} | "  # [新增] 终端显示滑动成功率
+            f"End: {bool(is_success)!s:<5} | "
         )
         tqdm.write(log_str)
 
@@ -198,4 +222,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
