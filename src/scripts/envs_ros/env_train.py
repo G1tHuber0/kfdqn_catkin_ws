@@ -93,6 +93,9 @@ class ROSGazeboMobileRobotTrainEnv(gym.Env):
         forward_v: float = 0.2,             # 直行线速度 (m/s)
         turn_v: float = 0.2,                # 转向时的线速度 (m/s)
         turn_omega: float = math.pi/2,             # 转向时的角速度 (rad/s)
+        # forward_v: float = 0.1,             # 直行线速度 (m/s)
+        # turn_v: float = 0.1,                # 转向时的线速度 (m/s)
+        # turn_omega: float = math.pi/4,             # 转向时的角速度 (rad/s)
         publish_hz: float = 30.0,            # 指令发布频率 (Hz)
         action_duration: float = 0.2,        # 单步动作物理执行持续时间 (s)
 

@@ -60,7 +60,7 @@ Visualization Manager:
       Marker Topic: /kfdqn_viz/current_wp
       Name: Marker
       Namespaces:
-        {}
+        current_wp: true
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -200,7 +200,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 9.268176078796387
+      Distance: 15.990446090698242
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -236,5 +236,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 2630
-  X: 60
-  Y: 97
+  X: -591
+  Y: 80

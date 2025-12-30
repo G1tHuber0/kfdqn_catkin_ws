@@ -26,9 +26,9 @@ from utils.replay_buffer import ReplayBuffer
 # 1. 全局配置与参数
 # ==========================================
 # ALGO_NAME = "DQN"
-ALGO_NAME = "DoubleDQN"
+# ALGO_NAME = "DoubleDQN"
 # ALGO_NAME = "DuelingDQN"
-# ALGO_NAME = "KFDQN"
+ALGO_NAME = "KFDQN"
 ENV_NAME = "ObstacleAvoidTrain-v0"
 RENDER_MODE = None
 
@@ -93,9 +93,11 @@ def main() -> None:
 
     print(f"{'='*40}")
     print(f"   Start Training: {ALGO_NAME} (Env2Train)")
+    print(f"   Device:         {cfg.device}")
     print(f"   Environment:    {ENV_NAME}")
     print(f"   Output Dir:     {OUTPUT_DIR}")
-    print(f"   Stop: steps>={MAX_TRAIN_STEPS} or ep>={MAX_EPISODES}")
+    print(f"   Train data:     tensorboard --logdir=src/scripts/outputs")
+    print(f"   Stop:           steps>={MAX_TRAIN_STEPS} or ep>={MAX_EPISODES}")
     print(f"{'='*40}\n")
 
     total_steps = 0
@@ -123,8 +125,9 @@ def main() -> None:
         while not (done or truncated):
             if total_steps >= MAX_TRAIN_STEPS:
                 break
-
-            # agent.update_parameters(i_episode, current_steps=total_steps)
+            
+            if ALGO_NAME == "KFDQN":
+                agent.update_parameters(i_episode, current_steps=total_steps)
 
             action_result = agent.take_action(state, total_steps)
             if isinstance(action_result, tuple):

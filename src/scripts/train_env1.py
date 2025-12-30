@@ -90,9 +90,12 @@ def main() -> None:
     csv_writer.writerow(["Episode", "Total_Steps", "Reward", "Ep_Steps", "Epsilon", "Avg_Loss", "Success", "Collision"])
 
     print(f"{'='*40}")
-    print(f"   Start Training: {ALGO_NAME}")
+    print(f"   Start Training: {ALGO_NAME} (Env1Train)")
+    print(f"   Device:         {cfg.device}")
     print(f"   Environment:    {ENV_NAME}")
     print(f"   Output Dir:     {OUTPUT_DIR}")
+    print(f"   Train data:     tensorboard --logdir=src/scripts/outputs")
+    print(f"   Stop:           steps>={MAX_TRAIN_STEPS} or ep>={MAX_EPISODES}")
     print(f"{'='*40}\n")
 
     total_steps = 0

@@ -93,7 +93,13 @@ class KFDQNAgent:
        
     def update_parameters(self, episode_idx: int,current_steps):
         self._episode_idx = episode_idx
-        self.epsilon = get_linear_decay_epsilon(current_steps, self.cfg)
+
+        if  episode_idx >=self.cfg.ep_r + 1:
+            if episode_idx ==self.cfg.ep_r + 1:
+                self.cfg.decay_start = current_steps
+
+            self.epsilon = get_linear_decay_epsilon(current_steps, self.cfg)
+        
         # 公式 (34): m = 0.35 + 0.6 * exp(-i),可以在 config 设置 m_tau，计算 exp(-i/m_tau)
         m_tau = getattr(self.cfg, "m_tau", None)
         if m_tau is None:
