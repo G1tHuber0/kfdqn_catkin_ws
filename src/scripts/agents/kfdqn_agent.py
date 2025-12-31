@@ -96,28 +96,30 @@ class KFDQNAgent:
     def update_parameters(self, episode_idx: int,current_steps):
         self._episode_idx = episode_idx
 
-        if  episode_idx >=self.cfg.ep_r + 1:
-            if episode_idx ==self.cfg.ep_r + 1:
+        if  self._episode_idx >=self.cfg.ep_r + 1:
+            if self._episode_idx ==self.cfg.ep_r + 1:
                 self.cfg.decay_start = current_steps
+            
 
             self.epsilon = get_linear_decay_epsilon(current_steps, self.cfg)
 
              # 公式 (34): m = 0.35 + 0.6 * exp(-i),可以在 config 设置 m_tau，计算 exp(-i/m_tau)
             m_tau = getattr(self.cfg, "m_tau", None)
             if m_tau is None:
-                expo = -float(episode_idx - self.cfg.ep_r)
+                expo = -float(self._episode_idx - self.cfg.ep_r)
             else:
-                expo = -float(episode_idx - self.cfg.ep_r) / float(m_tau)
+                expo = -float(self._episode_idx - self.cfg.ep_r) / float(m_tau)
 
             # 计算动态权重 m 和 n
             self.m = float(self.cfg.m_base + self.cfg.m_decay * math.exp(expo))
             self.m = max(0.0, min(1.0, self.m)) # 确保在 [0, 1] 之间
             self.n = 1.0 - self.m       
-        # 算法 2: 每隔 C 回合更新一次 Target 网络
-        C = getattr(self.cfg, "C_update", 10)
-        if episode_idx > 0 and (episode_idx % C == 0):
-            self._hard_update_targets()
+        # # 算法 2: 每隔 C 回合更新一次 Target 网络
+        # C = getattr(self.cfg, "C_update", 10)
+        # if episode_idx > 0 and (episode_idx % C == 0):
+        #     self._hard_update_targets()
         return self.m, self.n
+        
     def standardize(self,tensor, eps=1e-6):
         mu = tensor.mean(dim=1, keepdim=True)
         std = tensor.std(dim=1, keepdim=True)

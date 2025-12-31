@@ -139,7 +139,7 @@ def main() -> None:
             if ALGO_NAME == "KFDQN":
                 kfdqn_m, kfdqn_n = agent.update_parameters(i_episode, current_steps=total_steps)
 
-            action_result = agent.take_action(state, total_steps)
+            action_result = agent.take_action(state, i_episode)
             
             # 解析动作返回结果
             action = 0
@@ -184,8 +184,13 @@ def main() -> None:
                 # 区分算法更新接口
                 if ALGO_NAME == "KFDQN":
                     loss_info = agent.update(transition_dict, episode_idx=i_episode)
+                    C = getattr(cfg, "C_update", 10)
+                    if i_episode > 0 and (i_episode % C == 0):
+                        agent._hard_update_targets()
                 else:
                     loss_info = agent.update(transition_dict)
+                # 算法 2: 每隔 C 回合更新一次 Target 网络
+        
 
                 current_loss = 0.0
                 if isinstance(loss_info, dict):

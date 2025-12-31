@@ -288,28 +288,33 @@ class ROSGazeboMobileRobotTrainEnv(gym.Env):
 
     def _lidar90(self, scan: LaserScan) -> np.ndarray:
         """
-        雷达数据预处理 (核心动作)：
-        将原始高维扫描点云降采样为 90 个固定区间。
-        每个区间取探测到的最近距离值作为特征，这在避障强化学习中是标准的“安全保守”处理。
+        雷达数据预处理 (等间隔采样模式)：
+        每隔 4° 采样一个数据点，总共采样 90 个点 (360 / 4 = 90)。
         """
         if scan.range_max > 0.0:
             self.max_lidar_range = float(scan.range_max)
 
         ranges = np.array(list(scan.ranges), dtype=np.float32)
-        if ranges.size == 0:
+        n = ranges.size
+
+        if n == 0:
             return np.full(90, self.max_lidar_range, dtype=np.float32)
 
-        n = ranges.size
-        bins = np.full(90, self.max_lidar_range, dtype=np.float32)
-        for i in range(90):
-            start = int(i * n / 90)
-            end = int((i + 1) * n / 90)
-            segment = ranges[start:end] if end > start else ranges[start : start + 1]
-            # 过滤 inf 和非有限数值
-            finite = segment[np.isfinite(segment)]
-            bins[i] = float(np.min(finite)) if finite.size > 0 else self.max_lidar_range
+        # 1. 预处理：处理原始数据中的 inf 和 nan
+        # 采样模式下，如果刚好采到 inf，必须将其视为最大距离，否则网络会报错
+        ranges[~np.isfinite(ranges)] = self.max_lidar_range
+        ranges = np.clip(ranges, 0.0, self.max_lidar_range)
 
-        bins = np.clip(bins, 0.0, self.max_lidar_range)
+        # 2. 计算采样索引
+        # 假设雷达是 360 度覆盖：
+        # - 如果 n=360 (分辨率1度)，则 stride=4，取索引 0, 4, 8...
+        # - 如果 n=720 (分辨率0.5度)，则 stride=8，取索引 0, 8, 16...
+        # 这里的 n / 90.0 可以自动适应不同分辨率的雷达
+        indices = (np.arange(90) * (n / 90.0)).astype(int)
+
+        # 3. 直接通过索引采样
+        bins = ranges[indices]
+
         return bins.astype(np.float32)
 
     def _normalize_obs(self, lidar: np.ndarray, theta_d: float, dis: float, prev_action: float) -> np.ndarray:

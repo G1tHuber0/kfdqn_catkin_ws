@@ -16,9 +16,9 @@ class ROSMobileFuzzyConfig:
         [0.5, 1.5],      # 维度1 (Lidar): 对应 近(Close, 靠近碰撞线), 远(Far)
     ]
     
-    # 高斯隶属度函数的标准差(Sigma)，通过公式 sigma = width/4 换算而来
+    # 高斯隶属度函数的标准差(Sigma)
     ANTECEDENT_SIGMAS = [
-        [2, 0.5, 2], # 对应 theta 的 w=[1, 0.75, 1]
+        [2.4, 0.4, 2.4], # 对应 theta 的 w=[1, 0.75, 1]
         [0.3, 0.3],      # 对应 lidar 的 w=[0.5, 2.75]
     ]
 
@@ -169,15 +169,18 @@ class FuzzySystem(nn.Module):
             theta_d = state[..., 90] 
             
             if self.is_obstacle_avoid_ros:
-                # # 核心修正：从原始 state (0-89位是雷达) 提取数据，而不是从 theta_d 提取
-                # # 1. 右前方: 270° 到 360° (对应索引 67 到 89)
-                # lidar_right_front = state[..., 67:90] 
-                # # 2. 左前方: 0° 到 90° (对应索引 0 到 22)
-                # lidar_left_front = state[..., 0:22] 
 
-                # # 拼接前方 180 度区域并取最小值
-                # lidar_180 = torch.cat([lidar_right_front, lidar_left_front], dim=-1)
-                min_lidar =  state[..., 0:90].min(dim=-1).values
+                # min_lidar =  state[..., 0:90].min(dim=-1).values
+
+                # 核心修正：从原始 state (0-89位是雷达) 提取数据，而不是从 theta_d 提取
+                # 1. 右前方: 270° 到 360° (对应索引 67 到 89)
+                lidar_right_front = state[..., 82:90] 
+                # 2. 左前方: 0° 到 90° (对应索引 0 到 22)
+                lidar_left_front = state[..., 0:8] 
+
+                # 拼接前方 180 度区域并取最小值
+                lidar_180 = torch.cat([lidar_right_front, lidar_left_front], dim=-1)
+                min_lidar =  lidar_180.min(dim=-1).values
 
                 # 核心修正：将 角度(theta_d) 和 最小值(min_lidar) 堆叠，形成 [Batch, 2] 的特征
                 feats = torch.stack([theta_d, min_lidar], dim=-1)
