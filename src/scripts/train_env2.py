@@ -5,6 +5,7 @@ import time
 import datetime
 import csv
 from collections import deque
+from utils.run_recorder import RunRecorder
 
 import torch
 import numpy as np
@@ -89,6 +90,42 @@ def main() -> None:
     success_window = deque(maxlen=SUCCESS_WINDOW_SIZE)
     collision_window = deque(maxlen=COLLISION_WINDOW_SIZE) 
 
+    # 训练前保存配置信息
+    recorder = RunRecorder(
+        data_dir=DATA_DIR,
+        algo_name=ALGO_NAME,
+        env_name=ENV_NAME,
+        timestamp=TIMESTAMP,
+    )
+
+    script_params = {
+        "render_mode": RENDER_MODE,
+        "continue_on_success": CONTINUE_ON_SUCCESS,
+        "max_episodes": MAX_EPISODES,
+        "max_train_steps": MAX_TRAIN_STEPS,
+        "max_episode_steps": MAX_EPISODE_STEPS,
+        "checkpoint_steps": CHECKPOINT_STEPS,
+        "success_window_size": SUCCESS_WINDOW_SIZE,
+        "collision_window_size": COLLISION_WINDOW_SIZE,
+    }
+
+    paths = {
+        "output_dir": OUTPUT_DIR,
+        "log_dir": LOG_DIR,
+        "model_dir": MODEL_DIR,
+        "data_dir": DATA_DIR,
+    }
+
+    config_path = recorder.save_config(
+        cfg=cfg,
+        agent=agent,
+        env=env,
+        seed_global=seed_global,
+        script_params=script_params,
+        paths=paths,
+    )
+    print(f"\nRun config saved to:\n=>{config_path}")
+
     csv_path = os.path.join(DATA_DIR, "training_log.csv")
     csv_file = open(csv_path, mode="w", newline="", encoding="utf-8")
     csv_writer = csv.writer(csv_file)
@@ -123,6 +160,7 @@ def main() -> None:
         ep_steps = 0
         ep_losses: list[float] = []
         done = False
+        terminal = False
         truncated = False
         info = {}
 
@@ -132,15 +170,16 @@ def main() -> None:
             "consistent_steps": 0   # 混合结果与Q网络一致的步数
         }
 
-        while not (done or truncated):
+        while not done:
             if total_steps >= MAX_TRAIN_STEPS:
                 break
             
             if ALGO_NAME == "KFDQN":
                 kfdqn_m, kfdqn_n = agent.update_parameters(i_episode, current_steps=total_steps)
+                action_result = agent.take_action(state, i_episode)
+            else:
+                action_result = agent.take_action(state, total_steps)
 
-            action_result = agent.take_action(state, i_episode)
-            
             # 解析动作返回结果
             action = 0
             strategy_tag = "unknown"
@@ -161,10 +200,10 @@ def main() -> None:
                 if q_choice is not None and action == q_choice:
                     kfdqn_stats["consistent_steps"] += 1
 
-            next_state, reward, done, truncated, info = env.step(action)
+            next_state, reward, terminal, truncated, info = env.step(action)
 
-            real_done = done and not truncated
-            replay_buffer.add(state, action, reward, next_state, real_done)
+            done = bool(terminal or  truncated)
+            replay_buffer.add(state, action, reward, next_state, done)
 
             state = next_state
             ep_reward += float(reward)
@@ -184,12 +223,14 @@ def main() -> None:
                 # 区分算法更新接口
                 if ALGO_NAME == "KFDQN":
                     loss_info = agent.update(transition_dict, episode_idx=i_episode)
+
+                    # 算法 2: 每隔 C 回合更新一次 Target 网络
                     C = getattr(cfg, "C_update", 10)
-                    if i_episode > 0 and (i_episode % C == 0):
+                    if i_episode > 0 and (i_episode % C == 0) and ep_steps <= 1:
+                        print("知识更新")
                         agent._hard_update_targets()
                 else:
-                    loss_info = agent.update(transition_dict)
-                # 算法 2: 每隔 C 回合更新一次 Target 网络
+                    loss_info = agent.update(transition_dict,episode_idx=i_episode)
         
 
                 current_loss = 0.0
@@ -220,9 +261,9 @@ def main() -> None:
 
         # 统计滑动窗口
         success_window.append(is_success)
-        avg_success_rate = sum(success_window) / len(success_window)
+        avg_success_rate = sum(success_window) / SUCCESS_WINDOW_SIZE #len(success_window)
         collision_window.append(is_collision)
-        avg_collision_rate = sum(collision_window) / len(collision_window)
+        avg_collision_rate = sum(collision_window) / COLLISION_WINDOW_SIZE #len(collision_window)
 
         # [KFDQN统计] 计算本回合的一致性比率
         consistency_rate = 0.0
@@ -268,6 +309,24 @@ def main() -> None:
     final_save_path = os.path.join(MODEL_DIR, f"{ALGO_NAME}_{TIMESTAMP}_final.pth")
     agent.save(final_save_path)
     print(f"\nTraining Finished. Final model saved to: {final_save_path}")
+
+    metrics = {
+    "final_avg_success_rate_window": float(avg_success_rate),
+    "final_avg_collision_rate_window": float(avg_collision_rate),
+    "success_window_size": SUCCESS_WINDOW_SIZE,
+    "collision_window_size": COLLISION_WINDOW_SIZE,
+    # KFDQN 可附带
+    "final_action_consistency": float(consistency_rate) if ALGO_NAME == "KFDQN" else None,
+    }
+
+    summary_path = recorder.save_summary(
+        total_steps=total_steps,
+        episodes_completed=i_episode,           # 循环结束时的 episode 编号
+        duration_sec=time.time() - start_time,
+        final_model_path=final_save_path,
+        metrics=metrics,
+    )
+    print(f"Run summary saved to: {summary_path}")
 
     env.close()
     csv_file.close()

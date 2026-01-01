@@ -100,16 +100,16 @@ class Config:
             self.train_freq = 1
             
             # KFDQN 核心参数 (论文/经验值)
-            self.h1 = 0.2
-            self.h2 = 0.8
-            self.ep_r = 25
-            self.C_update = 10
+            self.h1 = 0.4
+            self.h2 = 0.6
+            self.ep_r = 50
+            self.C_update = 15
             self.m_base = 0.8
-            self.m_decay = 0.6
+            self.m_decay = 1-self.m_base
             self.m_tau = 100
             
             self.freeze_fuzzy_premise = True
-            self.fuzzy_lr = 0.0001
+            self.fuzzy_lr = 0.02
 
     def _set_ros_env_params(self):
         """ROS 环境的强约束配置 (覆盖上述参数)"""
@@ -131,7 +131,7 @@ class Config:
         self.epsilon_end = 0.01
         self.decay_start = 0
         if self.algo == 'KFDQN':
-            self.epsilon_start = 1.0
+            self.epsilon_start = 0.01
             self.epsilon_end = 0.01
             self.decay_start = 0
         # 4. 针对不同 ROS 任务的差异化配置

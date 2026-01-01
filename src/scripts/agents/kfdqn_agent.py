@@ -59,10 +59,10 @@ class KFDQNAgent:
         )
 
         # --- 混合目标权重 ---
-        self.m = 1.0 # DQN 权重
-        self.n = 0.0 # Fuzzy 权重
-        self.h1 = self.cfg.h1 # DQN 权重
-        self.h2 = self.cfg.h2 # Fuzzy 权重
+        self.m = 1.0 # 目标学习DQN 权重
+        self.n = 0.0 # 目标学习Fuzzy 权重
+        self.h1 = self.cfg.h1 # 混合动作 Fuzzy 权重
+        self.h2 = self.cfg.h2 # 混合动作 DQN 权重
 
         # 内部计数器
         self._episode_idx = 0
@@ -150,9 +150,10 @@ class KFDQNAgent:
             fuzzy_logits = self.fuzzy_guide(state)
             # 模糊系统的推荐动作
             a_f = int(fuzzy_logits.argmax(dim=1).item())
-            
-            if (np.random.rand() < self.epsilon) or (episode_idx < self.cfg.ep_r):
+            ##### 监督阶段或者是探索动作
+            if (np.random.rand() <= self.epsilon) or (episode_idx <= self.cfg.ep_r):
                 return a_f, 'a_f', None
+            
             # 1. 不进行标准正态分布 (Mean=0, Std=1)
             q_norm = q_values 
             f_norm = fuzzy_logits

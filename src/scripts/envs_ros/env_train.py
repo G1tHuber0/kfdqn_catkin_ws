@@ -94,14 +94,14 @@ class ROSGazeboMobileRobotTrainEnv(gym.Env):
         turn_v: float = 0.2,                # 转向时的线速度 (m/s)
         turn_omega: float = math.pi/2,             # 转向时的角速度 (rad/s)
         publish_hz: float = 30.0,            # 指令发布频率 (Hz)
-        action_duration: float = 0.2,        # 单步动作物理执行持续时间 (s)
+        action_duration: float = 0.1,        # 单步动作物理执行持续时间 (s)
 
         # --- 奖励函数参数 (Reward Shaping) ---
         RTH: float = 0.20,                   # 到达目标的物理距离半径
         CTH: float = 0.15,                   # 碰撞触发的最小避障安全距离
         r_reach: float = 100.0,              # 成功到达目标点的奖励 (Positive Reward)
         r_collision: float = -50.0,         # 发生碰撞后的惩罚 (Negative Reward)
-        p_r: float = 50,                     # 势能奖励系数 (基于距离目标的接近程度)
+        p_r: float = 100,                     # 势能奖励系数 (基于距离目标的接近程度)
         r_o: float = -0.2,                   # 时间步生存惩罚 (鼓励最短路径到达)
 
         # --- 环境约束与阈值 ---

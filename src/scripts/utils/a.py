@@ -4,8 +4,8 @@ import math
 
 # ================= 配置区 =================
 # 你可以随意修改这里的数量和数值
-CENTERS =  [math.pi, 0.0, -math.pi]
-WIDTHS  =  [2.4, 0.4, 2.4]
+CENTERS =  [0.5, 1]
+WIDTHS  =  [0.2, 0.2]
 # ==========================================
 
 def gaussian_mf(x, mu, w):
@@ -22,8 +22,8 @@ def main():
 
     # 2. 自适应宽度计算 (X轴)
     # 计算每个模糊集的边界（中心 +/- 1.5倍宽度，确保高斯尾部也能显示）
-    left_edge = np.min(c_array - 1.5 * w_array)
-    right_edge = np.max(c_array + 1.5 * w_array)
+    left_edge = np.min(c_array - 3 * w_array)
+    right_edge = np.max(c_array + 3 * w_array)
     
     x = np.linspace(left_edge, right_edge, 1000)
 
