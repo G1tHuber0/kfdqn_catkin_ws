@@ -6,6 +6,7 @@ import datetime
 import csv
 from collections import deque
 from utils.run_recorder import RunRecorder
+from utils.seeding import seed_everything, episode_seed
 
 import torch
 import numpy as np
@@ -26,10 +27,8 @@ from utils.replay_buffer import ReplayBuffer
 # ==========================================
 # 1. 全局配置与参数
 # ==========================================
-# ALGO_NAME = "DQN"
-# ALGO_NAME = "DoubleDQN"
-# ALGO_NAME = "DuelingDQN"
-ALGO_NAME = "KFDQN"
+ALGO_NAME = os.environ.get("ALGO_NAME", "DQN")
+# Supported: DQN, DoubleDQN, DuelingDQN, KFDQN
 
 ENV_NAME = "ObstacleAvoidTrain-v0"
 RENDER_MODE = None
@@ -46,23 +45,30 @@ COLLISION_WINDOW_SIZE = 100  # 碰撞率统计窗口
 
 CHECKPOINT_STEPS = [2000, 5000, 10000, 20000, 30000, 50000, 75000, 100000, 150000]
 
-TIMESTAMP = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-OUTPUT_DIR = os.path.join(BASE_DIR, f"outputs/{ENV_NAME}", f"{ALGO_NAME}_{ENV_NAME}_{TIMESTAMP}")
-LOG_DIR = os.path.join(OUTPUT_DIR, "logs")
-MODEL_DIR = os.path.join(OUTPUT_DIR, "models")
-DATA_DIR = os.path.join(OUTPUT_DIR, "data")
-
-os.makedirs(LOG_DIR, exist_ok=True)
-os.makedirs(MODEL_DIR, exist_ok=True)
-os.makedirs(DATA_DIR, exist_ok=True)
 
 
 def main() -> None:
     cfg = Config(algo=ALGO_NAME, env_name=ENV_NAME)
     cfg.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    seed_override = os.environ.get("SEED")
+    if seed_override is not None:
+        cfg.seed = int(seed_override)
     seed_global = cfg.seed + 99
+
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_dir = os.path.join(
+        BASE_DIR,
+        f"outputs/{ENV_NAME}",
+        f"{ALGO_NAME}_{ENV_NAME}_seed{cfg.seed}_{timestamp}",
+    )
+    log_dir = os.path.join(output_dir, "logs")
+    model_dir = os.path.join(output_dir, "models")
+    data_dir = os.path.join(output_dir, "data")
+
+    os.makedirs(log_dir, exist_ok=True)
+    os.makedirs(model_dir, exist_ok=True)
+    os.makedirs(data_dir, exist_ok=True)
     env = gym.make(
         ENV_NAME,
         render_mode=RENDER_MODE,
@@ -70,8 +76,7 @@ def main() -> None:
         continue_on_success=CONTINUE_ON_SUCCESS,
     )
 
-    np.random.seed(seed_global)
-    torch.manual_seed(seed_global)
+    seed_everything(seed_global, env=env, deterministic_torch=True)
 
     if ALGO_NAME == "KFDQN":
         agent = KFDQNAgent(cfg)
@@ -83,8 +88,8 @@ def main() -> None:
         agent = DQNAgent(cfg)
     agent.train_mode()
 
-    replay_buffer = ReplayBuffer(cfg.buffer_size)
-    writer = SummaryWriter(log_dir=LOG_DIR)
+    replay_buffer = ReplayBuffer(cfg.buffer_size, seed=seed_global)
+    writer = SummaryWriter(log_dir=log_dir)
 
     # 初始化统计队列
     success_window = deque(maxlen=SUCCESS_WINDOW_SIZE)
@@ -92,10 +97,10 @@ def main() -> None:
 
     # 训练前保存配置信息
     recorder = RunRecorder(
-        data_dir=DATA_DIR,
+        data_dir=data_dir,
         algo_name=ALGO_NAME,
         env_name=ENV_NAME,
-        timestamp=TIMESTAMP,
+        timestamp=timestamp,
     )
 
     script_params = {
@@ -110,10 +115,10 @@ def main() -> None:
     }
 
     paths = {
-        "output_dir": OUTPUT_DIR,
-        "log_dir": LOG_DIR,
-        "model_dir": MODEL_DIR,
-        "data_dir": DATA_DIR,
+        "output_dir": output_dir,
+        "log_dir": log_dir,
+        "model_dir": model_dir,
+        "data_dir": data_dir,
     }
 
     config_path = recorder.save_config(
@@ -126,7 +131,7 @@ def main() -> None:
     )
     print(f"\nRun config saved to:\n=>{config_path}")
 
-    csv_path = os.path.join(DATA_DIR, "training_log.csv")
+    csv_path = os.path.join(data_dir, "training_log.csv")
     csv_file = open(csv_path, mode="w", newline="", encoding="utf-8")
     csv_writer = csv.writer(csv_file)
     # [修改] CSV头增加 Consistency
@@ -136,7 +141,7 @@ def main() -> None:
     print(f"   Start Training: {ALGO_NAME} (Env2Train)")
     print(f"   Device:         {cfg.device}")
     print(f"   Environment:    {ENV_NAME}")
-    print(f"   Output Dir:     {OUTPUT_DIR}")
+    print(f"   Output Dir:     {output_dir}")
     print(f"   Train data:     tensorboard --logdir=src/scripts/outputs")
     print(f"   Stop:           steps>={MAX_TRAIN_STEPS} or ep>={MAX_EPISODES}")
     print(f"{'='*40}\n")
@@ -155,7 +160,12 @@ def main() -> None:
         if total_steps >= MAX_TRAIN_STEPS:
             break
 
-        state, _ = env.reset(seed=seed_global + i_episode)
+        ep_seed = episode_seed(seed_global, i_episode)
+        # 每回合重置 RNG：避免因“回合长度不同”导致全局随机序列漂移
+        seed_everything(ep_seed, env=env, deterministic_torch=True)
+        replay_buffer.reseed(ep_seed)
+        state, _ = env.reset(seed=ep_seed)
+        
         ep_reward = 0.0
         ep_steps = 0
         ep_losses: list[float] = []
@@ -245,8 +255,8 @@ def main() -> None:
                     writer.add_scalar("Step/Loss", current_loss, total_steps)
 
             if total_steps in CHECKPOINT_STEPS:
-                save_name = f"{ALGO_NAME}_{TIMESTAMP}_{total_steps}.pth"
-                save_path = os.path.join(MODEL_DIR, save_name)
+                save_name = f"{ALGO_NAME}_{timestamp}_{total_steps}.pth"
+                save_path = os.path.join(model_dir, save_name)
                 agent.save(save_path)
                 tqdm.write(f">>> [Checkpoint] Model saved: {save_name} at step {total_steps}")
 
@@ -306,7 +316,7 @@ def main() -> None:
         if total_steps >= MAX_TRAIN_STEPS:
             break
 
-    final_save_path = os.path.join(MODEL_DIR, f"{ALGO_NAME}_{TIMESTAMP}_final.pth")
+    final_save_path = os.path.join(model_dir, f"{ALGO_NAME}_{timestamp}_final.pth")
     agent.save(final_save_path)
     print(f"\nTraining Finished. Final model saved to: {final_save_path}")
 
