@@ -103,10 +103,10 @@ class Config:
             self.h1 = 0.4
             self.h2 = 0.6
             self.ep_r = 50
-            self.C_update = 15
+            self.C_update = 5
             self.m_base = 0.8
             self.m_decay = 1-self.m_base
-            self.m_tau = 100
+            self.m_tau = 50
             
             self.freeze_fuzzy_premise = True
             self.fuzzy_lr = 0.02

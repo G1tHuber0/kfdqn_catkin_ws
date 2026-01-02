@@ -54,7 +54,7 @@ def main() -> None:
     seed_override = os.environ.get("SEED")
     if seed_override is not None:
         cfg.seed = int(seed_override)
-    seed_global = cfg.seed + 99
+    seed_global = cfg.seed
 
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     output_dir = os.path.join(
