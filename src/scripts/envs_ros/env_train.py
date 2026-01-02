@@ -98,9 +98,9 @@ class ROSGazeboMobileRobotTrainEnv(gym.Env):
 
         # --- 奖励函数参数 (Reward Shaping) ---
         RTH: float = 0.20,                   # 到达目标的物理距离半径
-        CTH: float = 0.15,                   # 碰撞触发的最小避障安全距离
+        CTH: float = 0.20,                   # 碰撞触发的最小避障安全距离
         r_reach: float = 10.0,              # 成功到达目标点的奖励 (Positive Reward)
-        r_collision: float = -5.0,         # 发生碰撞后的惩罚 (Negative Reward)
+        r_collision: float = -15.0,         # 发生碰撞后的惩罚 (Negative Reward)
         p_r: float = 10,                     # 势能奖励系数 (基于距离目标的接近程度)
         r_o: float = -0.02,                   # 时间步生存惩罚 (鼓励最短路径到达)
 
@@ -125,7 +125,7 @@ class ROSGazeboMobileRobotTrainEnv(gym.Env):
         # --- Rviz 可视化配置 ---
         enable_viz: bool = True,             # 是否发布 Marker 和 Path 供可视化分析
         viz_frame: str = "odom",             # 可视化坐标系参考帧
-        max_path_len: int = 1000,            # 可视化轨迹点数上限
+        max_path_len: int = 250,            # 可视化轨迹点数上限
         render_mode: str | None = None,      # 符合 Gym 接口要求的渲染模式占位
     ):
         super().__init__()

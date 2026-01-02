@@ -163,7 +163,7 @@ def main() -> None:
         ep_seed = episode_seed(seed_global, i_episode)
         # 每回合重置 RNG：避免因“回合长度不同”导致全局随机序列漂移
         seed_everything(ep_seed, env=env, deterministic_torch=True)
-        replay_buffer.reseed(ep_seed)
+        # NOTE: ReplayBuffer RNG should advance continuously across the run to avoid periodic sampling artifacts.
         state, _ = env.reset(seed=ep_seed)
         
         ep_reward = 0.0
