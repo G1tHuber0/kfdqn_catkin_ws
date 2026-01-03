@@ -1,0 +1,17 @@
+{
+  "timestamp": "20260103_222859",
+  "algo_name": "KFDQN",
+  "env_name": "ObstacleAvoidTrain-v0",
+  "episodes_completed": 1000,
+  "total_steps": 52247,
+  "train_duration_sec": 1884.9485623836517,
+  "final_model_path": "/home/lst/kfdqn_catkin_ws/src/scripts/outputs/ENV2/KFDQN_seed111_20260103_222859/models/KFDQN_20260103_222859_final.pth",
+  "metrics": {
+    "final_avg_success_rate_window": 0.94,
+    "final_avg_collision_rate_window": 0.06,
+    "success_window_size": 100,
+    "collision_window_size": 100,
+    "final_action_consistency": 0.6666666666666666
+  },
+  "config_path": "/home/lst/kfdqn_catkin_ws/src/scripts/outputs/ENV2/KFDQN_seed111_20260103_222859/data/run_config.json"
+}

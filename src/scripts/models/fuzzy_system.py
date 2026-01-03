@@ -13,13 +13,13 @@ class ROSMobileFuzzyConfig:
     # 状态量归一化映射: theta_norm 在 [-1,1], lidar_norm 在 [0,1]
     ANTECEDENT_CENTERS = [
         [math.pi, 0.0, -math.pi],   # 维度0 (Theta): 对应 左(Left), 前(Front), 右(Right)
-        [0.5, 1.5],      # 维度1 (Lidar): 对应 近(Close, 靠近碰撞线), 远(Far)
+        [0.2, 1.5],      # 维度1 (Lidar): 对应 近(Close, 靠近碰撞线), 远(Far)
     ]
     
     # 高斯隶属度函数的标准差(Sigma)
     ANTECEDENT_SIGMAS = [
         [2, 0.5, 2], # 对应 theta
-        [0.4, 0.6],      # 对应 lidar
+        [0.2, 1.0],      # 对应 lidar
     ]
 
     # 预定义的规则权重极值：支持(Support)或反对(Oppose)

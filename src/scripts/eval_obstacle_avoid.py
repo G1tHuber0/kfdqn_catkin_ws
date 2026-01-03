@@ -7,7 +7,7 @@ import gymnasium as gym
 
 # Local modules
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-import scripts.envs_ros.env_eval  # register envs
+from envs_ros import env_eval  # register envs
 from config import Config
 from agents.dqn_agent import DQNAgent
 from agents.double_dqn_agent import DoubleDQNAgent
@@ -19,7 +19,7 @@ from agents.kfdqn_agent import KFDQNAgent
 # =============================
 ALGO_NAME = "KFDQN"
 ENV_NAME = "ObstacleAvoid-v0"
-MODEL_PATH = "src/scripts/outputs/KFDQN_ObstacleAvoidROS-v0_YYYYMMDD_HHMMSS/models/KFDQN_YYYYMMDD_HHMMSS_final.pth"
+MODEL_PATH = "src/scripts/outputs/ENV2/KFDQN_seed111_20260103_222859/models/KFDQN_20260103_222859_final.pth"
 
 EVAL_EPISODES = 100
 
