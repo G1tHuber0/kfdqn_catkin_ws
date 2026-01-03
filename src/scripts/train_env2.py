@@ -34,6 +34,7 @@ ENV_NAME = "ObstacleAvoidTrain-v0"
 RENDER_MODE = None
 
 CONTINUE_ON_SUCCESS = False
+OUTPUT_ENV_DIR = "ENV2"
 
 MAX_EPISODES = 1000
 MAX_TRAIN_STEPS = 99999999
@@ -57,10 +58,12 @@ def main() -> None:
     seed_global = cfg.seed
 
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    run_name = f"{ALGO_NAME}_seed{cfg.seed}_{timestamp}"
     output_dir = os.path.join(
         BASE_DIR,
-        f"outputs/{ENV_NAME}",
-        f"{ALGO_NAME}_{ENV_NAME}_seed{cfg.seed}_{timestamp}",
+        "outputs",
+        OUTPUT_ENV_DIR,
+        run_name,
     )
     log_dir = os.path.join(output_dir, "logs")
     model_dir = os.path.join(output_dir, "models")

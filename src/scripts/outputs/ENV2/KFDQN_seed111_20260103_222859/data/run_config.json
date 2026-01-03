@@ -1,16 +1,16 @@
 {
-  "timestamp": "20260103_033302",
+  "timestamp": "20260103_222859",
   "algo_name": "KFDQN",
   "env_name": "ObstacleAvoidTrain-v0",
   "paths": {
-    "output_dir": "/home/lst/kfdqn_catkin_ws/src/scripts/outputs/ObstacleAvoidTrain-v0/KFDQN_ObstacleAvoidTrain-v0_seed42_20260103_033302",
-    "log_dir": "/home/lst/kfdqn_catkin_ws/src/scripts/outputs/ObstacleAvoidTrain-v0/KFDQN_ObstacleAvoidTrain-v0_seed42_20260103_033302/logs",
-    "model_dir": "/home/lst/kfdqn_catkin_ws/src/scripts/outputs/ObstacleAvoidTrain-v0/KFDQN_ObstacleAvoidTrain-v0_seed42_20260103_033302/models",
-    "data_dir": "/home/lst/kfdqn_catkin_ws/src/scripts/outputs/ObstacleAvoidTrain-v0/KFDQN_ObstacleAvoidTrain-v0_seed42_20260103_033302/data"
+    "output_dir": "/home/lst/kfdqn_catkin_ws/src/scripts/outputs/ENV2/KFDQN_seed111_20260103_222859",
+    "log_dir": "/home/lst/kfdqn_catkin_ws/src/scripts/outputs/ENV2/KFDQN_seed111_20260103_222859/logs",
+    "model_dir": "/home/lst/kfdqn_catkin_ws/src/scripts/outputs/ENV2/KFDQN_seed111_20260103_222859/models",
+    "data_dir": "/home/lst/kfdqn_catkin_ws/src/scripts/outputs/ENV2/KFDQN_seed111_20260103_222859/data"
   },
   "seeds": {
-    "cfg_seed": 42,
-    "seed_global": 42
+    "cfg_seed": 111,
+    "seed_global": 111
   },
   "script_params": {
     "render_mode": null,
@@ -36,7 +36,7 @@
     "algo": "KFDQN",
     "env_name": "ObstacleAvoidTrain-v0",
     "device": "cuda",
-    "seed": 42,
+    "seed": 111,
     "state_dim": 93,
     "action_dim": 3,
     "hidden_dim": [
@@ -54,7 +54,7 @@
     "decay_steps": 2000,
     "h1": 0.4,
     "h2": 0.6,
-    "m_base": 0.8,
+    "m_base": 0.4,
     "use_hybrid_action": true,
     "use_hybrid_learning": true,
     "buffer_size": 10000,
@@ -64,10 +64,10 @@
     "train_freq": 1,
     "ep_r": 50,
     "C_update": 5,
-    "m_decay": 0.19999999999999996,
-    "m_tau": 50,
+    "m_decay": 0.6,
+    "m_tau": 100,
     "freeze_fuzzy_premise": true,
-    "fuzzy_lr": 0.02,
+    "fuzzy_lr": 0.01,
     "episodes": 1000
   },
   "agent": {
@@ -84,7 +84,7 @@
       "param_groups": [
         {
           "group": 0,
-          "lr": 0.02
+          "lr": 0.01
         }
       ]
     },
@@ -128,12 +128,12 @@
       "ACTION_FORWARD": 2
     },
     "control": {
-      "forward_v": 0.2,
-      "turn_v": 0.2,
+      "forward_v": 0.11,
+      "turn_v": 0.11,
       "turn_omega": 1.5707963267948966,
-      "publish_hz": 30.0,
-      "action_duration": 0.1,
-      "cmd_publishes_per_step": 3
+      "publish_hz": 50.0,
+      "action_duration": 0.2,
+      "cmd_publishes_per_step": 10
     },
     "sensors": {
       "max_lidar_range": 3.5,
@@ -141,11 +141,11 @@
     },
     "episode_reward": {
       "max_steps": 100,
-      "RTH": 0.2,
-      "CTH": 0.2,
-      "waypoint_rth": 0.2,
+      "RTH": 0.1,
+      "CTH": 0.15,
+      "waypoint_rth": 0.1,
       "r_reach": 10.0,
-      "r_collision": -15.0,
+      "r_collision": -10.0,
       "p_r": 10,
       "r_o": -0.02,
       "continue_on_success": false
