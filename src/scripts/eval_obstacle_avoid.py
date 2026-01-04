@@ -19,7 +19,7 @@ from agents.kfdqn_agent import KFDQNAgent
 # =============================
 ALGO_NAME = "KFDQN"
 ENV_NAME = "ObstacleAvoid-v0"
-MODEL_PATH = "src/scripts/outputs/ENV2/KFDQN_seed111_20260103_222859/models/KFDQN_20260103_222859_final.pth"
+MODEL_PATH = "src/scripts/outputs/ENV2/KFDQN_seed111_20260104_010821/models/KFDQN_20260104_010821_final.pth"
 
 EVAL_EPISODES = 100
 
@@ -48,6 +48,9 @@ def _build_agent(cfg: Config):
 def _select_action(agent, state):
     state_tensor = torch.tensor(state, dtype=torch.float32, device=agent.device).unsqueeze(0)
     with torch.no_grad():
+        if ALGO_NAME == "KFDQN":
+            action = agent.take_action(state)[0]
+            return int(action)
         q_values = agent.q_net(state_tensor)
         return int(q_values.argmax(dim=1).item())
 

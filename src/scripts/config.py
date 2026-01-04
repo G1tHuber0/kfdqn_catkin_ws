@@ -100,11 +100,11 @@ class Config:
             self.train_freq = 1
             
             # KFDQN 核心参数 (论文/经验值)
-            self.h1 = 0.4
-            self.h2 = 0.6
+            self.h1 = 0.3
+            self.h2 = 0.7
             self.ep_r = 50
-            self.C_update = 5
-            self.m_base = 0.4
+            self.C_update = 10
+            self.m_base = 0.85
             self.m_decay = 1-self.m_base
             self.m_tau = 100
             

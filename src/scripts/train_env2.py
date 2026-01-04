@@ -240,7 +240,6 @@ def main() -> None:
                     # 算法 2: 每隔 C 回合更新一次 Target 网络
                     C = getattr(cfg, "C_update", 10)
                     if i_episode > 0 and (i_episode % C == 0) and ep_steps <= 1:
-                        print("知识更新")
                         agent._hard_update_targets()
                 else:
                     loss_info = agent.update(transition_dict,episode_idx=i_episode)

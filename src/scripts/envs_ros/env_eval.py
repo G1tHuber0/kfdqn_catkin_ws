@@ -92,7 +92,7 @@ class ROSGazeboMobileRobotEnv(gym.Env):
         max_lidar_range: float = 3.5,  # 雷达截断距离（超过此距离按最大值算）
         forward_v: float = 0.11,       # 直行时的线速度 (m/s)
         turn_v: float = 0.11,          # 转向时的线速度 (m/s)
-        turn_omega: float = math.pi/2,       # 转向时的角速度 (rad/s)
+        turn_omega: float = math.pi/4,       # 转向时的角速度 (rad/s)
         publish_hz: float = 50.0,      # 控制频率
         action_duration: float = 0.2,  # 每个动作执行的持续时间
         

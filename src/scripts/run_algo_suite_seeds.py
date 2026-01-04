@@ -6,8 +6,8 @@ import subprocess
 
 # ALGO_LIST = ["DQN", "DoubleDQN", "DuelingDQN", "KFDQN"]
 ALGO_LIST = ["KFDQN"]
-BASE_SEED = 111
-ROUNDS = 1
+BASE_SEED = 66
+ROUNDS = 5
 SLEEP_SECONDS = 2
 
 
