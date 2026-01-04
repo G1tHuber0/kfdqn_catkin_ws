@@ -19,7 +19,7 @@ from agents.kfdqn_agent import KFDQNAgent
 # =============================
 ALGO_NAME = "KFDQN"
 ENV_NAME = "ObstacleAvoid-v0"
-MODEL_PATH = "src/scripts/outputs/ENV2/KFDQN_seed111_20260104_010821/models/KFDQN_20260104_010821_final.pth"
+MODEL_PATH = "src/scripts/result/1/KFDQN_seed70_20260104_083229/models/KFDQN_20260104_083229_final.pth"
 
 EVAL_EPISODES = 100
 

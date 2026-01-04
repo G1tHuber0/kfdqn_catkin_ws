@@ -172,6 +172,8 @@ def main() -> None:
         ep_reward = 0.0
         ep_steps = 0
         ep_losses: list[float] = []
+        ep_q_losses: list[float] = []
+        ep_fuzzy_losses: list[float] = []
         done = False
         terminal = False
         truncated = False
@@ -236,8 +238,7 @@ def main() -> None:
                 # 区分算法更新接口
                 if ALGO_NAME == "KFDQN":
                     loss_info = agent.update(transition_dict, episode_idx=i_episode)
-
-                    # 算法 2: 每隔 C 回合更新一次 Target 网络
+                    # 每隔 C 回合更新一次 Target 网络
                     C = getattr(cfg, "C_update", 10)
                     if i_episode > 0 and (i_episode % C == 0) and ep_steps <= 1:
                         agent._hard_update_targets()
@@ -246,15 +247,27 @@ def main() -> None:
         
 
                 current_loss = 0.0
+                q_loss_val = 0.0
+                fuzzy_loss_val = 0.0    
+
                 if isinstance(loss_info, dict):
-                    current_loss = float(loss_info.get("q_loss", 0.0) + loss_info.get("fuzzy_loss", 0.0))
+                    q_loss_val = float(loss_info.get("q_loss", 0.0))
+                    fuzzy_loss_val = float(loss_info.get("fuzzy_loss", 0.0))
+                    current_loss = q_loss_val + fuzzy_loss_val
                 else:
                     current_loss = float(loss_info)
+                    q_loss_val = current_loss
+                    fuzzy_loss_val = 0.0
 
                 ep_losses.append(current_loss)
+                ep_q_losses.append(q_loss_val)
+                ep_fuzzy_losses.append(fuzzy_loss_val)
 
-                if total_steps % 100 == 0:
-                    writer.add_scalar("Step/Loss", current_loss, total_steps)
+                if total_steps % 10 == 0:
+                    writer.add_scalar("Step/01_Loss", current_loss, total_steps)
+                    if ALGO_NAME == "KFDQN":
+                        writer.add_scalar("Step/02_Q_Loss", q_loss_val, total_steps)
+                        writer.add_scalar("Step/03_Fuzzy_Loss", fuzzy_loss_val, total_steps)
 
             if total_steps in CHECKPOINT_STEPS:
                 save_name = f"{ALGO_NAME}_{timestamp}_{total_steps}.pth"
@@ -268,6 +281,8 @@ def main() -> None:
                 pbar.set_postfix({"T_Steps": total_steps, "Step/s": f"{steps_per_sec:.1f}"})
 
         avg_loss = float(np.mean(ep_losses)) if ep_losses else 0.0
+        avg_q_loss = float(np.mean(ep_q_losses)) if ep_q_losses else 0.0
+        avg_fuzzy_loss = float(np.mean(ep_fuzzy_losses)) if ep_fuzzy_losses else 0.0
         is_success = 1 if info.get("is_success", False) else 0
         is_collision = 1 if info.get("is_collision", False) else 0
 
@@ -283,13 +298,17 @@ def main() -> None:
             consistency_rate = kfdqn_stats["consistent_steps"] / kfdqn_stats["hybrid_steps"]
 
         writer.add_scalar("Episode/01-Reward", ep_reward, i_episode)
-        writer.add_scalar("Episode/06-Steps", ep_steps, i_episode)
-        writer.add_scalar("Episode/05-Epsilon", agent.epsilon, i_episode)
-        writer.add_scalar("Episode/04-Avg_Loss", avg_loss, i_episode)
         writer.add_scalar(f"Episode/02-SuccessRate_Last{SUCCESS_WINDOW_SIZE}", avg_success_rate, i_episode)
         writer.add_scalar(f"Episode/03-CollisionRate_Last{COLLISION_WINDOW_SIZE}", avg_collision_rate, i_episode)
 
+        writer.add_scalar("Episode/04-Avg_Loss", avg_loss, i_episode)
+        writer.add_scalar("Episode/06-Steps", ep_steps, i_episode)
+        writer.add_scalar("Episode/05-Epsilon", agent.epsilon, i_episode)
+            
+
         if ALGO_NAME == "KFDQN":
+            writer.add_scalar("KFDQN/00-Avg_Q_Loss", avg_q_loss, i_episode)
+            writer.add_scalar("KFDQN/00-Avg_Fuzzy_Loss", avg_fuzzy_loss, i_episode)
             # 记录一致性比率
             writer.add_scalar("KFDQN/00-ActionConsistency", consistency_rate, i_episode)
             writer.add_scalar("KFDQN/01-HybridWeight_m", kfdqn_m, i_episode)

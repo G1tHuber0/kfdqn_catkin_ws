@@ -103,8 +103,8 @@ class Config:
             self.h1 = 0.3
             self.h2 = 0.7
             self.ep_r = 50
-            self.C_update = 10
-            self.m_base = 0.85
+            self.C_update = 5
+            self.m_base = 0.75
             self.m_decay = 1-self.m_base
             self.m_tau = 100
             
@@ -131,9 +131,9 @@ class Config:
         self.epsilon_end = 0.01
         self.decay_start = 0
         if self.algo == 'KFDQN':
-            self.epsilon_start = 0.01
+            self.epsilon_start = 1
             self.epsilon_end = 0.01
-            self.decay_start = 0
+            self.decay_start = 2000
         # 4. 针对不同 ROS 任务的差异化配置
         if "ObstacleAvoid" in self.env_name:
             # 避障任务通常更难，需要更多轮次和更慢的衰减

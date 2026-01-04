@@ -90,14 +90,14 @@ class ROSGazeboMobileRobotEnv(gym.Env):
         # --- 训练参数 ---
         max_steps: int = 100,          # 单回合最大允许步数
         max_lidar_range: float = 3.5,  # 雷达截断距离（超过此距离按最大值算）
-        forward_v: float = 0.11,       # 直行时的线速度 (m/s)
-        turn_v: float = 0.11,          # 转向时的线速度 (m/s)
-        turn_omega: float = math.pi/4,       # 转向时的角速度 (rad/s)
+        forward_v: float = 0.2,       # 直行时的线速度 (m/s)
+        turn_v: float = 0.2,          # 转向时的线速度 (m/s)
+        turn_omega: float = math.pi/2,       # 转向时的角速度 (rad/s)
         publish_hz: float = 50.0,      # 控制频率
-        action_duration: float = 0.2,  # 每个动作执行的持续时间
+        action_duration: float = 0.1,  # 每个动作执行的持续时间
         
         # --- 奖励函数参数 ---
-        RTH: float = 0.10,             # 到达目标点的判定半径阈值 (Reach Threshold)
+        RTH: float = 0.20,             # 到达目标点的判定半径阈值 (Reach Threshold)
         CTH: float = 0.15,             # 碰撞判定阈值 (Collision Threshold)
         r_reach: float = 10.0,        # 到达目标的稀疏奖励
         r_collision: float = -10.0,   # 发生碰撞的惩罚
