@@ -100,13 +100,13 @@ class Config:
             self.train_freq = 1
             
             # KFDQN 核心参数 (论文/经验值)
-            self.h1 = 0.3
-            self.h2 = 0.7
+            self.h1 = 0.2
+            self.h2 = 0.8
             self.ep_r = 50
             self.C_update = 5
-            self.m_base = 0.75
+            self.m_base = 0.8
             self.m_decay = 1-self.m_base
-            self.m_tau = 100
+            self.m_tau = 1
             
             self.freeze_fuzzy_premise = True
             self.fuzzy_lr = 0.01
@@ -133,7 +133,7 @@ class Config:
         if self.algo == 'KFDQN':
             self.epsilon_start = 1
             self.epsilon_end = 0.01
-            self.decay_start = 2000
+            self.decay_start = 500
         # 4. 针对不同 ROS 任务的差异化配置
         if "ObstacleAvoid" in self.env_name:
             # 避障任务通常更难，需要更多轮次和更慢的衰减
