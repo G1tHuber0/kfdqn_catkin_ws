@@ -90,19 +90,19 @@ class ROSGazeboMobileRobotTrainEnv(gym.Env):
         # --- 训练参数与物理特性 ---
         max_steps: int = 100,                # 回合最大步数限制
         max_lidar_range: float = 3.5,        # 雷达有效截断距离
-        forward_v: float = 0.2,             # 直行线速度 (m/s)
-        turn_v: float = 0.2,                # 转向时的线速度 (m/s)
-        turn_omega: float = 2,             # 转向时的角速度 (rad/s)
-        publish_hz: float = 50.0,            # 指令发布频率 (Hz)
+        forward_v: float = 0.15,             # 直行线速度 (m/s)
+        turn_v: float = 0.15,                # 转向时的线速度 (m/s)
+        turn_omega: float = 1,             # 转向时的角速度 (rad/s)
+        publish_hz: float = 100.0,            # 指令发布频率 (Hz)
         action_duration: float = 0.1,        # 单步动作物理执行持续时间 (s)
 
         # --- 奖励函数参数 (Reward Shaping) ---
         RTH: float = 0.20,                   # 到达目标的物理距离半径
         CTH: float = 0.15,                   # 碰撞触发的最小避障安全距离
         r_reach: float = 10.0,              # 成功到达目标点的奖励 (Positive Reward)
-        r_collision: float = -10.0,         # 发生碰撞后的惩罚 (Negative Reward)
-        p_r: float = 10,                     # 势能奖励系数 (基于距离目标的接近程度)
-        r_o: float = -0.02,                   # 时间步生存惩罚 (鼓励最短路径到达)
+        r_collision: float = -5.0,         # 发生碰撞后的惩罚 (Negative Reward)
+        p_r: float = 5,                     # 势能奖励系数 (基于距离目标的接近程度)
+        r_o: float = -0.01,                   # 时间步生存惩罚 (鼓励最短路径到达)
 
         # --- 环境约束与阈值 ---
         waypoint_rth: float = 0.20,          # 航点到达判定阈值
@@ -116,7 +116,7 @@ class ROSGazeboMobileRobotTrainEnv(gym.Env):
         # --- 随机重置配置 ---
         map_xy_limit: float = 2.0,           # 采样区域的 XY 坐标绝对值边界
         wall_margin: float = 0.4,           # 采样出生点时离墙壁的保护边距
-        goal_d_min: float = 0.5,             # 目标点离机器人出生的最小允许距离
+        goal_d_min: float = 1,             # 目标点离机器人出生的最小允许距离
         goal_d_max: float = 3,               # 目标点离机器人出生的最大允许距离
         safety_margin: float = 0.05,         # 重置时额外的碰撞检测安全余量
         max_reset_retries: int = 150,        # 重置时采样合法点的最大重试次数
@@ -534,7 +534,7 @@ class ROSGazeboMobileRobotTrainEnv(gym.Env):
                 break
 
         # 指令发布完毕，等待物理仿真生效产生新一帧雷达观测
-        t0, timeout = rospy.get_time(), 0.2
+        t0, timeout = rospy.get_time(), self.action_duration
         rate_wait = rospy.Rate(100)
         while True:
             scan, odom = self._current_scan, self._current_odom
