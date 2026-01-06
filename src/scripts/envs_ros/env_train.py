@@ -3,7 +3,8 @@ from __future__ import annotations
 import math
 import time
 from typing import Optional, Tuple
-
+import pathlib
+import csv
 import gymnasium as gym
 import numpy as np
 import rospy
@@ -127,6 +128,7 @@ class ROSGazeboMobileRobotTrainEnv(gym.Env):
         viz_frame: str = "odom",             # 可视化坐标系参考帧
         max_path_len: int = 250,            # 可视化轨迹点数上限
         render_mode: str | None = None,      # 符合 Gym 接口要求的渲染模式占位
+        
     ):
         super().__init__()
         ensure_ros_init() # 确保本进程内 ROS 节点已运行
@@ -217,6 +219,14 @@ class ROSGazeboMobileRobotTrainEnv(gym.Env):
             ( 0.0,  1.7, 0.35), # 上边界中心
             ( 0.0, -1.7, 0.35), # 下边界中心
         ]
+
+        # Fixed goal sequence (minimal intrusion, opt-in)
+        self.use_fixed_goal_list = True  # 需要时在外部置 True
+        self.episode_count = 0
+
+        # list_goal.csv location: same directory as this env_train.py
+        self.goal_list_path = self.goal_list_path = pathlib.Path(__file__).resolve().parent / "list_goal.csv"
+        self._goal_list = None  # lazy-loaded [(gx,gy), ...]
 
     def _scan_cb(self, msg: LaserScan):
         """激光雷达订阅回调：缓存最新的一帧传感器数据对象"""
@@ -380,6 +390,35 @@ class ROSGazeboMobileRobotTrainEnv(gym.Env):
         print(f"Warning: Could not find valid goal away from obstacles for robot at ({robot_x:.2f}, {robot_y:.2f})")
         # 即使失败也返回一个随机点，防止程序崩溃，但在训练中可能会有些“坏”数据
         return gx, gy
+    def _load_goal_list_if_needed(self):
+        if self._goal_list is not None:
+            return
+        if not self.goal_list_path.exists():
+            raise FileNotFoundError(
+                f"Fixed goal list not found: {self.goal_list_path}. "
+                f"Please generate it first (tools/gen_goal_list.py)."
+            )
+
+        goals = []
+        with self.goal_list_path.open("r", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                gx = float(row["goal_x"])
+                gy = float(row["goal_y"])
+                goals.append((gx, gy))
+
+        if len(goals) == 0:
+            raise ValueError(f"Empty goal list: {self.goal_list_path}")
+
+        self._goal_list = goals
+
+
+    def _get_fixed_goal(self, episode_idx: int):
+        self._load_goal_list_if_needed()
+        assert self._goal_list is not None
+        # 如果训练超过 1000 回合，可循环使用；或你也可以选择 raise
+        i = episode_idx % len(self._goal_list)
+        return self._goal_list[i]
 
     def _publish_current_wp_marker(self) -> None:
         """在 Rviz 中发布一个红色球体，直观显示机器人当前需要追逐的目标位置"""
@@ -459,7 +498,10 @@ class ROSGazeboMobileRobotTrainEnv(gym.Env):
                 continue
 
             # 确定合法目标并发布可视化
-            gx, gy = self._sample_goal(rx, ry)
+            if self.use_fixed_goal_list:
+                gx, gy = self._get_fixed_goal(self.episode_count)
+            else:
+                gx, gy = self._sample_goal(rx, ry)
             self.goal = np.array([gx, gy], dtype=np.float32)
             if self.enable_viz:
                 self._publish_current_wp_marker()
@@ -494,6 +536,7 @@ class ROSGazeboMobileRobotTrainEnv(gym.Env):
             "goal": (float(self.goal[0]), float(self.goal[1])),
             "robot_pose": (float(x), float(y), float(yaw)),
         }
+        self.episode_count += 1
         return obs.astype(np.float32), info
 
     # -------------------------------------------------------------------------
