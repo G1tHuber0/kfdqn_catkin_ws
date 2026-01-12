@@ -100,16 +100,16 @@ class Config:
             self.train_freq = 1
             
             # KFDQN 核心参数 (论文/经验值)
-            self.h1 = 0.2
-            self.h2 = 0.8
+            self.h1 = 0.4      #模糊动作权重
+            self.h2 = 1-self.h1 #Q动作权重
             self.ep_r = 50
             self.C_update = 5
-            self.m_base = 0.8
+            self.m_base = 0.6
             self.m_decay = 1-self.m_base
             self.m_tau = 1
             
             self.freeze_fuzzy_premise = True
-            self.fuzzy_lr = 0.01
+            self.fuzzy_lr = 0.002
 
     def _set_ros_env_params(self):
         """ROS 环境的强约束配置 (覆盖上述参数)"""

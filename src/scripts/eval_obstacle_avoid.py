@@ -17,13 +17,13 @@ from agents.kfdqn_agent import KFDQNAgent
 # =============================
 # Config
 # =============================
-ALGO_NAME = "KFDQN"
+ALGO_NAME = "DQN"
 ENV_NAME = "ObstacleAvoid-v0"
-MODEL_PATH = "src/scripts/result/1/KFDQN_seed70_20260104_083229/models/KFDQN_20260104_083229_final.pth"
+MODEL_PATH = "src/scripts/outputs/ENV2/DQN_seed123_20260112_172215/models/DQN_20260112_172215_final.pth"
 
 EVAL_EPISODES = 100
 
-
+ 
 def _resolve_model_path(model_path: str) -> str:
     if os.path.isabs(model_path):
         return model_path
@@ -49,8 +49,17 @@ def _select_action(agent, state):
     state_tensor = torch.tensor(state, dtype=torch.float32, device=agent.device).unsqueeze(0)
     with torch.no_grad():
         if ALGO_NAME == "KFDQN":
-            action = agent.take_action(state)[0]
-            return int(action)
+            agent.use_af=False
+            agent.use_aq=False
+            if agent.use_af:
+                action = agent.take_action(state)
+                return action
+            elif agent.use_aq:
+                action = agent.take_action(state)
+                return action
+            else:
+                action = agent.take_action(state)[0]
+                return int(action)
         q_values = agent.q_net(state_tensor)
         return int(q_values.argmax(dim=1).item())
 

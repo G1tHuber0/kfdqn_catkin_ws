@@ -101,8 +101,8 @@ class ROSGazeboMobileRobotTrainEnv(gym.Env):
         RTH: float = 0.20,                   # 到达目标的物理距离半径
         CTH: float = 0.15,                   # 碰撞触发的最小避障安全距离
         r_reach: float = 10.0,              # 成功到达目标点的奖励 (Positive Reward)
-        r_collision: float = -5.0,         # 发生碰撞后的惩罚 (Negative Reward)
-        p_r: float = 5,                     # 势能奖励系数 (基于距离目标的接近程度)
+        r_collision: float = -10.0,         # 发生碰撞后的惩罚 (Negative Reward)
+        p_r: float = 10,                     # 势能奖励系数 (基于距离目标的接近程度)
         r_o: float = -0.01,                   # 时间步生存惩罚 (鼓励最短路径到达)
 
         # --- 环境约束与阈值 ---
@@ -121,7 +121,7 @@ class ROSGazeboMobileRobotTrainEnv(gym.Env):
         goal_d_max: float = 3,               # 目标点离机器人出生的最大允许距离
         safety_margin: float = 0.05,         # 重置时额外的碰撞检测安全余量
         max_reset_retries: int = 150,        # 重置时采样合法点的最大重试次数
-        continue_on_success: bool = False,   # 成功到达后是否继续累积回合（不重置机器人）
+        continue_on_success: bool = True,   # 成功到达后是否继续累积回合（不重置机器人）
 
         # --- Rviz 可视化配置 ---
         enable_viz: bool = True,             # 是否发布 Marker 和 Path 供可视化分析

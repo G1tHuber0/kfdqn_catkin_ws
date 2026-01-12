@@ -1,0 +1,229 @@
+{
+  "timestamp": "20260111_201029",
+  "algo_name": "KFDQN",
+  "env_name": "ObstacleAvoidTrain-v0",
+  "paths": {
+    "output_dir": "/home/lst/kfdqn_catkin_ws/src/scripts/outputs/ENV2/KFDQN_seed123_20260111_201029",
+    "log_dir": "/home/lst/kfdqn_catkin_ws/src/scripts/outputs/ENV2/KFDQN_seed123_20260111_201029/logs",
+    "model_dir": "/home/lst/kfdqn_catkin_ws/src/scripts/outputs/ENV2/KFDQN_seed123_20260111_201029/models",
+    "data_dir": "/home/lst/kfdqn_catkin_ws/src/scripts/outputs/ENV2/KFDQN_seed123_20260111_201029/data"
+  },
+  "seeds": {
+    "cfg_seed": 123,
+    "seed_global": 123
+  },
+  "script_params": {
+    "render_mode": null,
+    "continue_on_success": false,
+    "max_episodes": 1000,
+    "max_train_steps": 99999999,
+    "max_episode_steps": 100,
+    "checkpoint_steps": [
+      2000,
+      5000,
+      10000,
+      20000,
+      30000,
+      50000,
+      75000,
+      100000,
+      150000
+    ],
+    "success_window_size": 100,
+    "collision_window_size": 100
+  },
+  "cfg": {
+    "algo": "KFDQN",
+    "env_name": "ObstacleAvoidTrain-v0",
+    "device": "cuda",
+    "seed": 123,
+    "state_dim": 93,
+    "action_dim": 3,
+    "hidden_dim": [
+      128,
+      256,
+      128,
+      64
+    ],
+    "gamma": 0.99,
+    "lr": 0.0001,
+    "grad_clip_norm": null,
+    "epsilon_start": 1,
+    "epsilon_end": 0.01,
+    "decay_start": 500,
+    "decay_steps": 2000,
+    "h1": 0.25,
+    "h2": 0.75,
+    "m_base": 0.55,
+    "use_hybrid_action": true,
+    "use_hybrid_learning": true,
+    "buffer_size": 10000,
+    "minimal_size": 1500,
+    "batch_size": 256,
+    "target_update": 500,
+    "train_freq": 1,
+    "ep_r": 50,
+    "C_update": 5,
+    "m_decay": 0.44999999999999996,
+    "m_tau": 1,
+    "freeze_fuzzy_premise": true,
+    "fuzzy_lr": 0.01,
+    "episodes": 1000
+  },
+  "agent": {
+    "agent_class": "KFDQNAgent",
+    "epsilon": 0.0,
+    "device": "cuda",
+    "h1": 0.25,
+    "h2": 0.75,
+    "use_hybrid_learning": true,
+    "m": 1.0,
+    "n": 0.0,
+    "fuzzy_optimizer": {
+      "type": "Adam",
+      "param_groups": [
+        {
+          "group": 0,
+          "lr": 0.01
+        }
+      ]
+    },
+    "optimizer": {
+      "type": "Adam",
+      "param_groups": [
+        {
+          "group": 0,
+          "lr": 0.0001
+        }
+      ]
+    }
+  },
+  "env": {
+    "env_class": "envs_ros.env_train.ROSGazeboMobileRobotTrainEnv",
+    "spec_id": "ObstacleAvoidTrain-v0",
+    "action_space": {
+      "type": "Discrete",
+      "n": 3,
+      "start": 0
+    },
+    "observation_space": {
+      "type": "Box",
+      "shape": [
+        93
+      ],
+      "dtype": "float32",
+      "low_min": -1.0,
+      "low_max": 0.0,
+      "high_min": 1.0,
+      "high_max": 1.0
+    },
+    "action_semantics": {
+      "0": "left",
+      "1": "right",
+      "2": "forward"
+    },
+    "action_constants": {
+      "ACTION_LEFT": 0,
+      "ACTION_RIGHT": 1,
+      "ACTION_FORWARD": 2
+    },
+    "control": {
+      "forward_v": 0.15,
+      "turn_v": 0.15,
+      "turn_omega": 1,
+      "publish_hz": 100.0,
+      "action_duration": 0.1,
+      "cmd_publishes_per_step": 10
+    },
+    "sensors": {
+      "max_lidar_range": 3.5,
+      "obs_comp": "90 lidar_norm + theta_norm + dis_norm + prev_action => 93 dims"
+    },
+    "episode_reward": {
+      "max_steps": 100,
+      "RTH": 0.2,
+      "CTH": 0.15,
+      "waypoint_rth": 0.2,
+      "r_reach": 10.0,
+      "r_collision": -5.0,
+      "p_r": 5,
+      "r_o": -0.01,
+      "continue_on_success": false
+    },
+    "reset_constraints": {
+      "map_xy_limit": 2.0,
+      "wall_margin": 0.4,
+      "goal_d_min": 1.0,
+      "goal_d_max": 3.0,
+      "safety_margin": 0.05,
+      "max_reset_retries": 150,
+      "obstacle_mode": true
+    },
+    "obstacles": {
+      "count": 8,
+      "items": [
+        [
+          -0.6,
+          -0.6,
+          0.35
+        ],
+        [
+          -0.6,
+          0.6,
+          0.35
+        ],
+        [
+          0.6,
+          -0.6,
+          0.35
+        ],
+        [
+          0.6,
+          0.6,
+          0.35
+        ],
+        [
+          1.7,
+          0.0,
+          0.35
+        ],
+        [
+          -1.7,
+          0.0,
+          0.35
+        ],
+        [
+          0.0,
+          1.7,
+          0.35
+        ],
+        [
+          0.0,
+          -1.7,
+          0.35
+        ]
+      ]
+    },
+    "ros": {
+      "scan_topic": "/scan",
+      "odom_topic": "/odom",
+      "cmd_vel_topic": "/cmd_vel",
+      "reset_world_service": "/gazebo/reset_world",
+      "reset_sim_service": "/gazebo/reset_simulation",
+      "set_model_state_service": "/gazebo/set_model_state",
+      "robot_model_name": "turtlebot3_burger"
+    }
+  },
+  "runtime": {
+    "python_version": "3.10.19 (main, Oct 21 2025, 16:43:05) [GCC 11.2.0]",
+    "platform": "Linux-5.15.0-139-generic-x86_64-with-glibc2.31",
+    "torch_version": "2.9.0+cu128",
+    "numpy_version": "2.2.6",
+    "gymnasium_version": "1.2.2",
+    "gym_version": null,
+    "cuda_available": true,
+    "cuda_version": "12.8",
+    "cudnn_version": 91300,
+    "gpu_name": "NVIDIA GeForce RTX 4060 Laptop GPU"
+  }
+}

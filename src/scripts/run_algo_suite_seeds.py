@@ -4,10 +4,10 @@ import sys
 import time
 import subprocess
 
-ALGO_LIST = ["DQN", "DoubleDQN", "DuelingDQN", "KFDQN"]
-# ALGO_LIST = ["KFDQN"]
+# ALGO_LIST = ["DQN", "DoubleDQN", "DuelingDQN", "KFDQN"]
+ALGO_LIST = ["KFDQN"]
 BASE_SEED = 123
-ROUNDS = 3
+ROUNDS = 1
 SLEEP_SECONDS = 2
 
 

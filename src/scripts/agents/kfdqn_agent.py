@@ -69,6 +69,8 @@ class KFDQNAgent:
         self.update_steps = 0
 
         # 消融开关
+        self.use_af= False
+        self.use_aq= False
         self.use_hybrid_action = getattr(cfg, "use_hybrid_action", True)
         self.use_hybrid_learning = getattr(cfg, "use_hybrid_learning", True)
         self.is_training = True
@@ -141,6 +143,12 @@ class KFDQNAgent:
                 hybrid_score = self.h1 * f_score + self.h2 * q_score
                 hya = int(hybrid_score.argmax(dim=1).item())
                 a_q = int(q_values.argmax(dim=1).item())
+                if self.use_af:
+                    a_f = int(fuzzy_logits.argmax(dim=1).item())
+                    return a_f
+                if self.use_aq:
+                    a_q = int(q_values.argmax(dim=1).item())
+                    return a_q
                 return hya, 'eval', a_q
             return int(q_values.argmax(dim=1).item()), 'eval', None
 
