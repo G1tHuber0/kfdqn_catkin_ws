@@ -141,6 +141,17 @@ class Config:
             self.decay_steps = 2000 
         else:
             # 默认为 GoalReach (寻路任务)
+            # KFDQN 核心参数 (论文/经验值)
+            self.h1 = 0.4      #模糊动作权重
+            self.h2 = 1-self.h1 #Q动作权重
+            self.ep_r = 50
+            self.C_update = 5
+            self.m_base = 0.4
+            self.m_decay = 1-self.m_base
+            self.m_tau = 1
+            
+            self.freeze_fuzzy_premise = True
+            self.fuzzy_lr = 0.002
             self.episodes = 500
             self.decay_steps = 1000
 

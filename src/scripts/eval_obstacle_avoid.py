@@ -17,9 +17,9 @@ from agents.kfdqn_agent import KFDQNAgent
 # =============================
 # Config
 # =============================
-ALGO_NAME = "DQN"
+ALGO_NAME = "DuelingDQN"
 ENV_NAME = "ObstacleAvoid-v0"
-MODEL_PATH = "src/scripts/outputs/ENV2/DQN_seed123_20260112_172215/models/DQN_20260112_172215_final.pth"
+MODEL_PATH = "src/scripts/outputs/ENV2/DuelingDQN/models/DuelingDQN_20260110_175840_20000.pth"
 
 EVAL_EPISODES = 100
 
@@ -40,7 +40,7 @@ def _build_agent(cfg: Config):
         return DQNAgent(cfg)
     if ALGO_NAME == "Double":
         return DoubleDQNAgent(cfg)
-    if ALGO_NAME == "Dueling":
+    if ALGO_NAME == "DuelingDQN":
         return DuelingDQNAgent(cfg)
     raise ValueError(f"Unsupported ALGO_NAME: {ALGO_NAME}")
 

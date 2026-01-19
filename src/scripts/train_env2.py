@@ -27,7 +27,7 @@ from utils.replay_buffer import ReplayBuffer
 # ==========================================
 # 1. 全局配置与参数
 # ==========================================
-ALGO_NAME = os.environ.get("ALGO_NAME", "DQN")
+ALGO_NAME = os.environ.get("ALGO_NAME", "KFDQN")
 # Supported: DQN, DoubleDQN, DuelingDQN, KFDQN
 
 ENV_NAME = "ObstacleAvoidTrain-v0"
@@ -235,7 +235,7 @@ def main() -> None:
                     "dones": b_d,
                 }
                 
-                # 区分算法更新接口
+                # 区分算法更新
                 if ALGO_NAME == "KFDQN":
                     loss_info = agent.update(transition_dict, episode_idx=i_episode)
                     # 每隔 C 回合更新一次 Target 网络

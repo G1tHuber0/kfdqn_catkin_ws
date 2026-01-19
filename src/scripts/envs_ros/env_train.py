@@ -10,6 +10,7 @@ import numpy as np
 import rospy
 from geometry_msgs.msg import Pose, PoseStamped, Twist
 from gymnasium import spaces
+from gymnasium import spaces
 from gymnasium.envs.registration import register, registry
 from nav_msgs.msg import Odometry, Path
 from sensor_msgs.msg import LaserScan
@@ -27,7 +28,6 @@ except Exception:
 
 # 全局变量：用于跟踪 ROS 节点是否已经初始化，防止多重初始化引发异常
 _ROS_INITIALIZED = False
-
 
 def ensure_ros_init(node_name: str = "gym_mobile_robot_env") -> None:
     """
@@ -101,13 +101,14 @@ class ROSGazeboMobileRobotTrainEnv(gym.Env):
         RTH: float = 0.20,                   # 到达目标的物理距离半径
         CTH: float = 0.15,                   # 碰撞触发的最小避障安全距离
         r_reach: float = 10.0,              # 成功到达目标点的奖励 (Positive Reward)
-        r_collision: float = -10.0,         # 发生碰撞后的惩罚 (Negative Reward)
-        p_r: float = 10,                     # 势能奖励系数 (基于距离目标的接近程度)
+        r_collision: float = -5.0,         # 发生碰撞后的惩罚 (Negative Reward)
+        p_r: float = 5,                     # 势能奖励系数 (基于距离目标的接近程度)
         r_o: float = -0.01,                   # 时间步生存惩罚 (鼓励最短路径到达)
 
         # --- 环境约束与阈值 ---
         waypoint_rth: float = 0.20,          # 航点到达判定阈值
         max_goal_distance: float = 5.5,      # 观察空间中距离归一化的基准值
+        
 
         # --- 系统稳定性配置 ---
         wait_timeout: float = 1.0,           # 等待 ROS 服务响应的超时时长
@@ -122,6 +123,7 @@ class ROSGazeboMobileRobotTrainEnv(gym.Env):
         safety_margin: float = 0.05,         # 重置时额外的碰撞检测安全余量
         max_reset_retries: int = 150,        # 重置时采样合法点的最大重试次数
         continue_on_success: bool = True,   # 成功到达后是否继续累积回合（不重置机器人）
+        goal_file="list_goal.csv",
 
         # --- Rviz 可视化配置 ---
         enable_viz: bool = True,             # 是否发布 Marker 和 Path 供可视化分析
@@ -166,6 +168,7 @@ class ROSGazeboMobileRobotTrainEnv(gym.Env):
         self.safety_margin = float(safety_margin)
         self.max_reset_retries = int(max_reset_retries)
         self.continue_on_success = bool(continue_on_success)
+        self.goal_file = goal_file          # 新增：保存文件名
         self.enable_viz = enable_viz
         self.viz_frame = viz_frame
         self.max_path_len = max_path_len
@@ -225,8 +228,13 @@ class ROSGazeboMobileRobotTrainEnv(gym.Env):
         self.episode_count = 0
 
         # list_goal.csv location: same directory as this env_train.py
-        self.goal_list_path = self.goal_list_path = pathlib.Path(__file__).resolve().parent / "list_goal.csv"
-        self._goal_list = None  # lazy-loaded [(gx,gy), ...]
+        self.goal_list_path = pathlib.Path(__file__).resolve().parent / self.goal_file
+        
+        print(f"[*] ROS Environment: Loading goal list from {self.goal_list_path}")
+        
+        self.use_fixed_goal_list = True  
+        self.episode_count = 0
+        self._goal_list = None  # 保持延迟加载逻辑
 
     def _scan_cb(self, msg: LaserScan):
         """激光雷达订阅回调：缓存最新的一帧传感器数据对象"""
@@ -690,6 +698,7 @@ if "GoalReachTrain-v0" not in registry:
             "obstacle_mode": False,
             "robot_model_name": "turtlebot3_burger",
             "max_steps": 100,
+            "goal_file": "simple_goals.csv",  # <--- 新增：指定加载纯导航目标文件
         },
     )
 
@@ -701,5 +710,6 @@ if "ObstacleAvoidTrain-v0" not in registry:
             "obstacle_mode": True,
             "robot_model_name": "turtlebot3_burger",
             "max_steps": 100,
+            "goal_file": "list_goal.csv",    # <--- 新增：指定加载避障目标文件
         },
     )

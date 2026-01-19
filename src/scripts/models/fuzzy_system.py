@@ -12,24 +12,20 @@ class ROSMobileFuzzyConfig:
     """
     # 状态量归一化映射: theta_norm 在 [-1,1], lidar_norm 在 [0,1]
     ANTECEDENT_CENTERS = [
-        [math.pi/6, 0.0, -math.pi/6],   # 维度0 (Theta): 对应 左(Left), 前(Front), 右(Right)
-        [0.0, 2],      # 维度1 (Lidar): 对应 近(Close, 靠近碰撞线), 远(Far)
+        [math.pi/2, 0.0, -math.pi/2],   # 维度0 (Theta): 对应 左(Left), 前(Front), 右(Right)
+        [0.15, 2],      # 维度1 (Lidar): 对应 近(Close, 靠近碰撞线), 远(Far)
     ]
-    
     # 高斯隶属度函数的标准差(Sigma)
     ANTECEDENT_SIGMAS = [
-        [0.3, 0.2, 0.3], # 对应 theta
+        [1, 0.2, 1], # 对应 theta
         [0.35,0.8],      # 对应 lidar
     ]
-
     # 预定义的规则权重极值：支持(Support)或反对(Oppose)
     ACTION_SUPPORT = 1.0
     ACTION_OPPOSE  = -1.0
-
     # 输入物理限制阈值，用于 preprocess 中的 clamp 操作
     THETA_LIMIT = math.pi
     LIDAR_LIMIT = 3.5
-
 
 class FuzzySystem(nn.Module):
     """
@@ -165,29 +161,23 @@ class FuzzySystem(nn.Module):
 
         # --- 第一步：特征映射与提取 ---
         if self.is_goalreach_ros or self.is_obstacle_avoid_ros:
-            # 提取目标相对角度 (假设在状态向量索引 90)
+            # 提取目标相对角度
             theta_d = state[..., 90] 
-            
             if self.is_obstacle_avoid_ros:
-
                 # min_lidar =  state[..., 0:90].min(dim=-1).values
-
-                # 核心修正：从原始 state (0-89位是雷达) 提取数据，而不是从 theta_d 提取
+                # 从原始 state (0-89位是雷达) 提取数据
                 # 1. 右前方: 270° 到 360° (对应索引 67 到 89)
                 lidar_right_front = state[..., 45:90] 
                 # 2. 左前方: 0° 到 90° (对应索引 0 到 22)
                 lidar_left_front = state[..., 0:45] 
-
                 # 拼接前方 180 度区域并取最小值
                 lidar_180 = torch.cat([lidar_right_front, lidar_left_front], dim=-1)
                 min_lidar =  lidar_180.min(dim=-1).values
-
-                # 核心修正：将 角度(theta_d) 和 最小值(min_lidar) 堆叠，形成 [Batch, 2] 的特征
+                # 将 角度(theta_d) 和 最小值(min_lidar) 堆叠，形成 [Batch, 2] 的特征
                 feats = torch.stack([theta_d, min_lidar], dim=-1)
             else:
                 # 仅目标趋近任务
                 feats = theta_d.unsqueeze(-1)
-            
             x_in = self.preprocess(feats)
         else:
             x_in = self.preprocess(state)
@@ -200,23 +190,18 @@ class FuzzySystem(nn.Module):
             # 输入 0: 角度
             theta = x[:, 0, :] # [B, 1]
             mu_theta = self.gaussian(theta, self.theta_centers, self.theta_sigmas) # [B, 3]
-            
             if self.is_obstacle_avoid_ros:
                 # 输入 1: 雷达最小值
                 lidar = x[:, 1, :] # [B, 1]
                 mu_lidar = self.gaussian(lidar, self.lidar_centers, self.lidar_sigmas) # [B, 2]
-                
                 # 计算规则激活强度 (AND 逻辑)
                 # [B, 3, 1] bmm [B, 1, 2] -> [B, 3, 2]
                 firing = torch.bmm(mu_theta.unsqueeze(2), mu_lidar.unsqueeze(1))
                 firing = firing.view(batch_size, -1) # 展平为 [B, 6] 条规则强度
             else:
                 firing = mu_theta # 仅单变量 [B, 3]
-
         # --- 第三步：归一化 ---
         norm = firing / (torch.sum(firing, dim=1, keepdim=True) + 1e-6)
-        
         # --- 第四步：解模糊 (加权求和) ---
         output = torch.matmul(norm, self.rule_weights)
-        
         return output

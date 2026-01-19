@@ -100,14 +100,14 @@ class ROSGazeboMobileRobotEnv(gym.Env):
         RTH: float = 0.20,             # 到达目标点的判定半径阈值 (Reach Threshold)
         CTH: float = 0.15,             # 碰撞判定阈值 (Collision Threshold)
         r_reach: float = 10.0,        # 到达目标的稀疏奖励
-        r_collision: float = -5.0,   # 发生碰撞的惩罚
-        p_r: float = 5,               # 势能奖励系数（靠近目标得分，远离扣分）
+        r_collision: float = -10.0,   # 发生碰撞的惩罚
+        p_r: float = 10,               # 势能奖励系数（靠近目标得分，远离扣分）
         r_o: float = -0.01,             # 时间步惩罚（鼓励尽快到达）
         
         # --- 目标设置 ---
         waypoints: list[tuple[float, float]] | None = None, # 任务路径点列表
-        waypoint_rth: float = 0.10,    # 路径点打卡半径
-        max_goal_distance: float = 8.0,# 状态归一化用的最大距离参考值
+        waypoint_rth: float = 0.20,    # 路径点打卡半径
+        max_goal_distance: float = 5.5,# 状态归一化用的最大距离参考值
         
         # --- 系统配置 ---
         wait_timeout: float = 1.0,     # 等待 ROS 服务的超时时间
@@ -615,6 +615,6 @@ if "ObstacleAvoid-v0" not in registry:
             "robot_model_name": "turtlebot3_burger",
             "waypoints": [(1.4, 0.9), (-0.15, 0.1)],
             "waypoint_rth": 0.20,
-            "max_steps": 1000,
+            "max_steps": 500,
         },
     )

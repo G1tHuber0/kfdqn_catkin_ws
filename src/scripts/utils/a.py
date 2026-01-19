@@ -4,8 +4,8 @@ import math
 
 # ================= 配置区 =================
 # 你可以随意修改这里的数量和数值
-CENTERS =  [math.pi/6, 0.0, -math.pi/6]
-WIDTHS  =  [0.3, 0.2, 0.3]
+CENTERS =  [math.pi/2, 0.0, -math.pi/2]
+WIDTHS  =  [1, 0.2, 1]
 # ==========================================
 
 def gaussian_mf(x, mu, w):

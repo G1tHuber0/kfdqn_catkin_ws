@@ -14,7 +14,6 @@ from utils.exploration import get_linear_decay_epsilon
 
 class KFDQNAgent:
     """
-    符合论文原文的 KFDQN 实现 (针对 CartPole):
     - HYAS (算法 1): 使用模糊动作 a_f 进行探索；早期回合强制使用 a_f；后期使用混合动作。
     - 双模糊系统 (章节 4.2.2): kf_theta (指导/Guide) 和 kf_theta_minus (学习/Learn) 分离，避免训练不稳定。
     - 两阶段 Q 学习 (算法 2):
@@ -31,15 +30,15 @@ class KFDQNAgent:
         self.target_q_net = QNet(cfg.state_dim, cfg.hidden_dim,cfg.action_dim).to(self.device)
         self.target_q_net.load_state_dict(self.q_net.state_dict())
         self.optimizer = optim.Adam(self.q_net.parameters(), lr=cfg.lr)
-        # --- 模糊系统初始化 ---
-        self.fuzzy_guide = FuzzySystem(self.device, env_name=cfg.env_name).to(self.device)# kf_theta: 指导模糊系统
-        self.fuzzy_learn = FuzzySystem(self.device, env_name=cfg.env_name).to(self.device)# kf_theta_minus: 学习模糊系统 
+        # 模糊系统初始化
+        self.fuzzy_guide = FuzzySystem(self.device, env_name=cfg.env_name).to(self.device)#  指导模糊系统
+        self.fuzzy_learn = FuzzySystem(self.device, env_name=cfg.env_name).to(self.device)#  学习模糊系统 
         # # 初始化时，让学习网络与指导网络参数同步
         self.fuzzy_learn.load_state_dict(self.fuzzy_guide.state_dict())
         with torch.no_grad():
             #  Xavier 均匀分布初始化规则权重
             torch.nn.init.xavier_uniform_(self.fuzzy_learn.rule_weights)
-        # 而冻结隶属度参数（中心/宽度，即前件参数）,只更新规则权重（后件参数），
+        # 冻结隶属度参数（中心/宽度，即前件参数）,只更新规则权重（后件参数），
         freeze_premise = getattr(cfg, "freeze_fuzzy_premise", True)
         if freeze_premise:
             # 冻结指导网络的前件参数
@@ -59,8 +58,8 @@ class KFDQNAgent:
         )
 
         # --- 混合目标权重 ---
-        self.m = 1.0 # 目标学习DQN 权重
-        self.n = 0.0 # 目标学习Fuzzy 权重
+        self.m = 1.0 # 目标学习 DQN动作权重
+        self.n = 0.0 # 目标学习 Fuzzy动作权重
         self.h1 = self.cfg.h1 # 混合动作 Fuzzy 权重
         self.h2 = self.cfg.h2 # 混合动作 DQN 权重
 
@@ -87,7 +86,7 @@ class KFDQNAgent:
         self.is_training = False
         self.q_net.eval()
         self.fuzzy_guide.eval()
-        self.fuzzy_learn.eval()
+        # self.fuzzy_learn.eval()
 
     def _hard_update_targets(self):
         self.target_q_net.load_state_dict(self.q_net.state_dict())# 更新 Target Q Network
@@ -158,21 +157,15 @@ class KFDQNAgent:
             fuzzy_logits = self.fuzzy_guide(state)
             # 模糊系统的推荐动作
             a_f = int(fuzzy_logits.argmax(dim=1).item())
-            ##### 监督阶段或者是探索动作
+            # 监督阶段或者是探索动作,直接返回模糊动作
             if (np.random.rand() <= self.epsilon) or (episode_idx <= self.cfg.ep_r):
                 return a_f, 'a_f', None
-            
-            # 1. 不进行标准正态分布 (Mean=0, Std=1)
-            q_norm = q_values 
-            f_norm = fuzzy_logits
-
-            # q_norm = self.standardize(q_values)
-            # f_norm = self.standardize(fuzzy_logits)
-            # 2. 然后再过 Softmax 
-            q_score = F.softmax(q_norm, dim=1)
-            f_score = F.softmax(f_norm, dim=1)
+            # 过 Softmax 
+            q_score = F.softmax(q_values, dim=1)
+            f_score = F.softmax(fuzzy_logits, dim=1)
 
             hybrid_score = self.h1 * f_score + self.h2 * q_score
+
             hya = int(hybrid_score.argmax(dim=1).item())
             a_q = int(q_values.argmax(dim=1).item())
             
@@ -218,7 +211,6 @@ class KFDQNAgent:
                     # Fuzzy 部分的目标值: Q(s', a_f)
                     a_f_next = self.fuzzy_guide(next_states).argmax(dim=1).view(-1, 1)
                     q_fuzzy_next = self.q_net(next_states).gather(1, a_f_next)
-
                     # 混合目标值: m * DQN目标 + n * Fuzzy目标
                     hybrid_next = self.m * max_next + self.n * q_fuzzy_next
                     q_target = rewards + self.cfg.gamma * hybrid_next * (1.0 - dones)
@@ -238,12 +230,7 @@ class KFDQNAgent:
         if getattr(self.cfg, "grad_clip_norm", None):
             torch.nn.utils.clip_grad_norm_(self.q_net.parameters(), max_norm=self.cfg.grad_clip_norm)
         self.optimizer.step()
-
         
-        # if self.update_steps % self.cfg.target_update == 0:
-        #     self.target_q_net.load_state_dict(self.q_net.state_dict())
-        # self.update_steps += 1
-
         # ========= 第二部分: 知识更新 (公式 13) =========
         if self.use_hybrid_learning:
             fuzzy_logits_learn = self.fuzzy_learn(states)
@@ -251,8 +238,6 @@ class KFDQNAgent:
             
             self.fuzzy_optimizer.zero_grad()
             fuzzy_loss.backward()
-            if getattr(self.cfg, "grad_clip_norm", None):
-                torch.nn.utils.clip_grad_norm_(self.fuzzy_learn.parameters(), max_norm=self.cfg.grad_clip_norm)
             self.fuzzy_optimizer.step()
             return {"q_loss": float(q_loss.item()), "fuzzy_loss": float(fuzzy_loss.item())}
         else:

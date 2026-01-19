@@ -37,29 +37,30 @@ class QNet(nn.Module):
 class DuelingQNet(nn.Module):
     def __init__(self, state_dim, hidden_dim, action_dim):
         super(DuelingQNet, self).__init__()
+        # --- 必须添加这一行 ---
         self._use_list = isinstance(hidden_dim, (list, tuple))
         
         if self._use_list:
             hidden_sizes = list(hidden_dim)
             layers = []
             in_dim = state_dim
-            for h in hidden_sizes:
+            for i, h in enumerate(hidden_sizes):
                 layers.append(nn.Linear(in_dim, h))
-                layers.append(nn.ReLU())
+                if i < len(hidden_sizes) - 1:
+                    layers.append(nn.ReLU())
                 in_dim = h
             self.feature = nn.Sequential(*layers)
-            
-            # 接入通过多层后的特征
             self.fc_v = nn.Linear(in_dim, 1)
             self.fc_a = nn.Linear(in_dim, action_dim)
         else:
+            # 原始非列表逻辑
             self.fc1 = nn.Linear(state_dim, hidden_dim)
             self.fc2 = nn.Linear(hidden_dim, hidden_dim)
-            
             self.fc_v = nn.Linear(hidden_dim, 1)
             self.fc_a = nn.Linear(hidden_dim, action_dim)
 
     def forward(self, x):
+        # 这里的 self._use_list 依赖于 __init__ 中的定义
         if self._use_list:
             x = self.feature(x)
         else:
