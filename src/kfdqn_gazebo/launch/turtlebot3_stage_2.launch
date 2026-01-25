@@ -1,17 +1,17 @@
 <launch>
   <arg name="model" default="$(env TURTLEBOT3_MODEL)"/>
-
+  <arg name="laser_visual" default="false"/>
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
     <arg name="world_name" value="$(find kfdqn_gazebo)/worlds/turtlebot3_stage_2.world"/>
     <arg name="use_sim_time" value="true"/>
-    <arg name="gui" value="false"/>
-    <arg name="headless" value="true"/>
+    <arg name="gui" value="true"/>
+    <arg name="headless" value="false"/>
   </include>
 
 <arg name="tb3_urdf" default="$(find kfdqn_gazebo)/urdf/turtlebot3_$(arg model).urdf.xacro"/>
 
 <param name="robot_description"
-       command="$(find xacro)/xacro --inorder $(arg tb3_urdf)"/>
+       command="$(find xacro)/xacro --inorder $(arg tb3_urdf) laser_visual:=$(arg laser_visual)"/>
 
   <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen"/>
 

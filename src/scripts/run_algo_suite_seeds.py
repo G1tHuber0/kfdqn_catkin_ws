@@ -44,4 +44,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    print(f"DEBUG: Current Python executable: {sys.executable}")
     main()
